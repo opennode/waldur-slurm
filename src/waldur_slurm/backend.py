@@ -36,8 +36,8 @@ class SLURMBackend(object):
     def delete_allocation(self, allocation):
         self._delete_account(allocation)
 
-    def _get_account_name(self, customer):
-        return '%s_%s' % (settings.WALDUR_SLURM['ACCOUNT_NAME_PREFIX'], customer.uuid.hex)
+    def _get_account_name(self, scope):
+        return '%s_%s' % (settings.WALDUR_SLURM['ACCOUNT_NAME_PREFIX'], scope.uuid.hex)
 
     def _set_allocation_quota(self, allocation, value):
         return self._execute_command([
