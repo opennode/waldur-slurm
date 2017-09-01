@@ -77,9 +77,10 @@ class SLURMBackend(object):
         username = self.options.username or 'root'
         server ='%s@%s' % (username, host)
         port = str(self.options.port or 22)
+        key_path = settings.WALDUR_SLURM['PRIVATE_KEY_PATH']
         account_command = ['sacctmgr', '--immediate', '--parsable2', '--noheader']
         account_command.extend(command)
-        ssh_command = ['ssh', server, '-p', port, "'%s'" % ' '.join(account_command)]
+        ssh_command = ['ssh', server, '-p', port, '-i', key_path, "'%s'" % ' '.join(account_command)]
         try:
             return subprocess.check_output(ssh_command, stderr=subprocess.STDOUT)  # nosec
         except subprocess.CalledProcessError:

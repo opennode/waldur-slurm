@@ -5,6 +5,7 @@ class SLURMExtension(NodeConductorExtension):
     class Settings:
         WALDUR_SLURM = {
             'ACCOUNT_NAME_PREFIX': 'waldur_',
+            'PRIVATE_KEY_PATH': '/etc/waldur/id_rsa',
         }
 
     @staticmethod

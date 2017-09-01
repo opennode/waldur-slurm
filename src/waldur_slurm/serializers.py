@@ -1,3 +1,5 @@
+from django.utils.translation import ugettext_lazy as _
+
 from nodeconductor.core import serializers as core_serializers
 from nodeconductor.structure import serializers as structure_serializers
 
