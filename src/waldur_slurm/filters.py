@@ -9,3 +9,8 @@ class SLURMServiceProjectLinkFilter(structure_filters.BaseServiceProjectLinkFilt
 
     class Meta(structure_filters.BaseServiceProjectLinkFilter.Meta):
         model = models.SLURMServiceProjectLink
+
+
+class AllocationFilter(structure_filters.BaseResourceFilter):
+    class Meta(structure_filters.BaseServiceProjectLinkFilter.Meta):
+        model = models.Allocation
