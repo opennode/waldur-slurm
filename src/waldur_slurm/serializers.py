@@ -11,11 +11,11 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
                         core_serializers.RequiredFieldsMixin,
                         structure_serializers.BaseServiceSerializer):
     SERVICE_ACCOUNT_FIELDS = {
-        'hostname': _('Hostname or IP address'),
-        'username': _('User username'),
+        'username': '',
     }
     SERVICE_ACCOUNT_EXTRA_FIELDS = {
         'hostname': _('Hostname or IP address'),
+        'port': '',
     }
 
     class Meta(structure_serializers.BaseServiceSerializer.Meta):
