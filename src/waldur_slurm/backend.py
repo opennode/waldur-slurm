@@ -1,6 +1,6 @@
 import logging
 
-from django.conf import settings
+from django.conf import settings as django_settings
 
 from nodeconductor.structure import models as structure_models
 from nodeconductor.structure import ServiceBackend
@@ -19,7 +19,7 @@ class SlurmBackend(ServiceBackend):
             hostname=self.settings.options['hostname'],
             username=self.settings.username,
             port=self.settings.options['port'],
-            key_path=settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
+            key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
         )
 
     def sync(self):
@@ -47,13 +47,7 @@ class SlurmBackend(ServiceBackend):
             self.delete_customer(customer)
 
     def list_customers(self):
-        customers = []
-        for account in self.client.list_accounts():
-            parts = account.name.split(settings.WALDUR_SLURM['CUSTOMER_PREFIX'])
-            if len(parts) != 2:
-                continue
-            customers.append(parts[1])
-        return customers
+        return self.list_accounts(django_settings.WALDUR_SLURM['CUSTOMER_PREFIX'])
 
     def create_customer(self, customer):
         customer_name = self.get_customer_name(customer)
@@ -63,8 +57,7 @@ class SlurmBackend(ServiceBackend):
         self.client.delete_account(self.get_customer_name(customer_uuid))
 
     def get_customer_name(self, customer):
-        key = isinstance(customer, basestring) and customer or customer.uuid.hex
-        return '%s%s' % (settings.WALDUR_SLURM['CUSTOMER_PREFIX'], key)
+        return self.get_account_name(django_settings.WALDUR_SLURM['CUSTOMER_PREFIX'], customer)
 
     def sync_projects(self):
         slurm_projects = set(self.list_projects())
@@ -81,13 +74,7 @@ class SlurmBackend(ServiceBackend):
             self.delete_project(project)
 
     def list_projects(self):
-        projects = []
-        for account in self.client.list_accounts():
-            parts = account.name.split(settings.WALDUR_SLURM['PROJECT_PREFIX'])
-            if len(parts) != 2:
-                continue
-            projects.append(parts[1])
-        return projects
+        return self.list_accounts(django_settings.WALDUR_SLURM['PROJECT_PREFIX'])
 
     def create_project(self, project):
         name = self.get_project_name(project)
@@ -98,8 +85,7 @@ class SlurmBackend(ServiceBackend):
         self.client.delete_account(self.get_project_name(project_uuid))
 
     def get_project_name(self, project):
-        key = isinstance(project, basestring) and project or project.uuid.hex
-        return '%s%s' % (settings.WALDUR_SLURM['PROJECT_PREFIX'], key)
+        return self.get_account_name(django_settings.WALDUR_SLURM['PROJECT_PREFIX'], project)
 
     def sync_allocations(self):
         slurm_allocations = set(self.list_allocations())
@@ -116,14 +102,7 @@ class SlurmBackend(ServiceBackend):
             self.client.delete_account(self.get_allocation_name(allocation))
 
     def list_allocations(self):
-        allocation_prefix = self.get_allocation_prefix()
-        allocations = []
-        for account in self.client.list_accounts():
-            parts = account.name.split(allocation_prefix)
-            if len(parts) != 2:
-                continue
-            allocations.append(parts[1])
-        return allocations
+        return self.list_accounts(django_settings.WALDUR_SLURM['ALLOCATION_PREFIX'])
 
     def create_allocation(self, allocation):
         allocation_name = self.get_allocation_name(allocation)
@@ -132,32 +111,42 @@ class SlurmBackend(ServiceBackend):
             description=allocation.name,
             organization=self.get_project_name(allocation.project),
         )
-        self.client.set_account_quota(allocation.name, allocation.cpu)
-
-    def get_allocation_queryset(self):
-        return models.Allocation.objects.filter(service_project_link__service__settings=self.settings)
+        self.client.set_account_quota(allocation_name, allocation.cpu)
 
     def sync_associations(self):
         waldur_associations = set()
         for allocation in self.get_allocation_queryset():
             for user in allocation.service_project_link.project.customer.get_users():
-                key = (allocation.uuid.hex, user.username)
+                key = (self.get_allocation_name(allocation), user.username.lower())
                 waldur_associations.add(key)
 
         slurm_associations = {(association.account, association.user)
-                              for association in self.client.list_associations()}
+                              for association in self.client.list_associations()
+                              if association.user}
 
         new_associations = waldur_associations - slurm_associations
-        for (username, allocation) in new_associations:
-            self.client.create_association(username, self.get_allocation_name(allocation))
+        for (allocation, username) in new_associations:
+            self.client.create_association(username, allocation)
 
         stale_associations = slurm_associations - waldur_associations
-        for (username, allocation) in stale_associations:
-            self.client.delete_association(username, self.get_allocation_name(allocation))
+        for (allocation, username) in stale_associations:
+            self.client.delete_association(username, allocation)
+
+    def get_allocation_queryset(self):
+        return models.Allocation.objects.filter(service_project_link__service__settings=self.settings)
 
     def get_allocation_name(self, allocation):
-        key = isinstance(allocation, basestring) and allocation or allocation.uuid.hex
-        return '%s%s' % (self.get_allocation_prefix(), key)
+        return self.get_account_name(django_settings.WALDUR_SLURM['ALLOCATION_PREFIX'], allocation)
 
-    def get_allocation_prefix(self):
-        return '%sallocation_' % settings.WALDUR_SLURM['ACCOUNT_NAME_PREFIX']
+    def get_account_name(self, prefix, object_or_uuid):
+        key = isinstance(object_or_uuid, basestring) and object_or_uuid or object_or_uuid.uuid.hex
+        return '%s%s' % (prefix, key)
+
+    def list_accounts(self, prefix):
+        accounts = []
+        for account in self.client.list_accounts():
+            parts = account.name.split(prefix)
+            if len(parts) != 2:
+                continue
+            accounts.append(parts[1])
+        return accounts

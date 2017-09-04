@@ -7,11 +7,11 @@ import subprocess
 class SlurmError(Exception):
     pass
 
-User = collections.namedtuple('SLURMUser', ['name'])
+User = collections.namedtuple('User', ['name', 'default_account', 'admin_level'])
 
-Account = collections.namedtuple('SLURMAccount', ['name', 'description', 'organization'])
+Account = collections.namedtuple('Account', ['name', 'description', 'organization'])
 
-Association = collections.namedtuple('SLURMAssociation', ['account', 'user', 'value'])
+Association = collections.namedtuple('Association', ['account', 'user', 'value'])
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +61,16 @@ class SlurmClient(object):
         return Association(
             account=parts[1],
             user=parts[2],
-            value=0,
+            value=parts[9],
         )
 
     def create_association(self, username, account):
         return self._execute_command(['add', 'user', username, 'account=%s' % account])
 
     def delete_association(self, username, account):
-        return self._execute_command(['remove', 'user', username, 'account=%s' % account])
+        return self._execute_command([
+            'remove', 'user', 'where', 'name=%s' % username, 'and', 'account=%s' % account
+        ])
 
     def list_users(self):
         output = self._execute_command(['list', 'user'])
@@ -76,7 +78,11 @@ class SlurmClient(object):
 
     def _parse_user(self, line):
         parts = line.split('|')
-        return User(name=parts[0])
+        return User(
+            name=parts[0],
+            default_account=parts[1],
+            admin_level=parts[2],
+        )
 
     def create_user(self, username, default_account):
         return self._execute_command([
