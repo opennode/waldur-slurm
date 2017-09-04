@@ -47,8 +47,10 @@ class SlurmBackend(ServiceBackend):
 
     def sync_customers(self):
         slurm_customers = set(self.list_customers())
-        waldur_customers_map = {customer.uuid.hex: customer
-                                for customer in structure_models.Customer.objects.all()}
+        waldur_customers_map = {
+            customer.uuid.hex: customer
+            for customer in structure_models.Customer.objects.all()
+        }
         waldur_customers = set(waldur_customers_map.keys())
 
         new_customers = waldur_customers - slurm_customers
@@ -74,8 +76,10 @@ class SlurmBackend(ServiceBackend):
 
     def sync_projects(self):
         slurm_projects = set(self.list_projects())
-        waldur_projects_map = {project.uuid.hex: project
-                               for project in structure_models.Project.objects.all()}
+        waldur_projects_map = {
+            project.uuid.hex: project
+            for project in structure_models.Project.objects.all()
+        }
         waldur_projects = set(waldur_projects_map.keys())
 
         new_projects = waldur_projects - slurm_projects
@@ -102,8 +106,10 @@ class SlurmBackend(ServiceBackend):
 
     def sync_allocations(self):
         slurm_allocations = set(self.list_allocations())
-        waldur_allocations_map = {allocation.uuid.hex: allocation
-                                  for allocation in self.get_allocation_queryset()}
+        waldur_allocations_map = {
+            allocation.uuid.hex: allocation
+            for allocation in self.get_allocation_queryset()
+        }
         waldur_allocations = set(waldur_allocations_map.keys())
 
         new_allocations = waldur_allocations - slurm_allocations
@@ -137,8 +143,10 @@ class SlurmBackend(ServiceBackend):
         self.client.delete_account(self.get_allocation_name(allocation))
 
     def sync_associations(self):
-        freeipa_profiles = {profile.user: profile.username
-                            for profile in freeipa_models.Profile.objects.all()}
+        freeipa_profiles = {
+            profile.user: profile.username
+            for profile in freeipa_models.Profile.objects.all()
+        }
 
         waldur_associations = set()
         for allocation in self.get_allocation_queryset():
@@ -181,7 +189,7 @@ class SlurmBackend(ServiceBackend):
             self.get_allocation_name(allocation): allocation
             for allocation in self.get_allocation_queryset()
         }
-        usage = self.client.get_usage()
+        usage = self.client.get_usage(waldur_allocations.keys())
         for account, value in usage.items():
             allocation = waldur_allocations.get(account)
             if allocation:

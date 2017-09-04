@@ -64,7 +64,7 @@ class SlurmClient(object):
     def _parse_association(self, line):
         parts = line.split('|')
         value = parts[9]
-        match = re.match('cpu=(\d+)', value)
+        match = re.match(r'cpu=(\d+)', value)
         if match:
             value = int(match.group(1))
         return Association(
@@ -101,7 +101,7 @@ class SlurmClient(object):
     def delete_user(self, username):
         return self._execute_command(['remove', 'user', username])
 
-    def get_usage(self):
+    def get_usage(self, accounts):
         today = timezone.now()
         month_start = core_utils.month_start(today).strftime('%Y-%m-%d')
         month_end = core_utils.month_end(today).strftime('%Y-%m-%d')
@@ -109,7 +109,7 @@ class SlurmClient(object):
             'cluster', 'AccountUtilizationByUser',
             'Start=%s' % month_start,
             'End=%s' % month_end,
-            'Accounts=root',
+            'Accounts=%s' % ','.join(accounts),
         ]
         output = self._execute_command(args, 'sreport', immediate=False)
         accounts = {}
