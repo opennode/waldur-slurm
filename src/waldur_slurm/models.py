@@ -35,3 +35,4 @@ class Allocation(structure_models.NewResource):
         SlurmServiceProjectLink, related_name='allocations', on_delete=models.PROTECT)
     cpu_limit = models.IntegerField(default=0)
     cpu_usage = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)

@@ -49,4 +49,5 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
 
     class Meta(structure_serializers.BaseResourceSerializer.Meta):
         model = models.Allocation
-        fields = structure_serializers.BaseResourceSerializer.Meta.fields + ('cpu',)
+        fields = structure_serializers.BaseResourceSerializer.Meta.fields + ('cpu_limit', 'cpu_usage')
+        read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + ('cpu_usage', 'is_active')

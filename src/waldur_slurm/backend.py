@@ -124,7 +124,17 @@ class SlurmBackend(ServiceBackend):
             description=allocation.name,
             organization=self.get_project_name(allocation.project),
         )
-        self.client.set_account_quota(allocation_name, allocation.cpu_limit)
+        self.client.set_cpu_limit(allocation_name, allocation.cpu_limit)
+
+    def cancel_allocation(self, allocation):
+        if allocation.cpu_limit != allocation.cpu_usage:
+            self.client.set_cpu_limit(self.get_allocation_name(allocation), allocation.cpu_usage)
+            allocation.cpu_limit = allocation.cpu_usage
+        allocation.is_active = False
+        allocation.save()
+
+    def delete_allocation(self, allocation):
+        self.client.delete_account(self.get_allocation_name(allocation))
 
     def sync_associations(self):
         freeipa_profiles = {profile.user: profile.username
@@ -164,7 +174,7 @@ class SlurmBackend(ServiceBackend):
 
         for account, value in waldur_quotas.items():
             if slurm_quotas.get(account) != value:
-                self.client.set_account_quota(account, value)
+                self.client.set_cpu_limit(account, value)
 
     def sync_usage(self):
         waldur_allocations = {

@@ -12,5 +12,6 @@ class SlurmServiceProjectLinkFilter(structure_filters.BaseServiceProjectLinkFilt
 
 
 class AllocationFilter(structure_filters.BaseResourceFilter):
-    class Meta(structure_filters.BaseServiceProjectLinkFilter.Meta):
+    class Meta(structure_filters.BaseResourceFilter.Meta):
         model = models.Allocation
+        fields = structure_filters.BaseResourceFilter.Meta.fields + ('is_active',)

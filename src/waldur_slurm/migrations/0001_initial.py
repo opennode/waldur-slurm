@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
                 ('backend_id', models.CharField(blank=True, max_length=255)),
                 ('cpu_limit', models.IntegerField(default=0)),
                 ('cpu_usage', models.IntegerField(default=0)),
+                ('is_active', models.BooleanField(default=True)),
             ],
             options={
                 'abstract': False,

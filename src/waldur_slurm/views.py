@@ -1,8 +1,11 @@
 import six
 
-from nodeconductor.structure import views as structure_views
+from rest_framework import decorators, response, status
 
-from . import filters, models, serializers
+from nodeconductor.structure import views as structure_views
+from nodeconductor.structure import permissions as structure_permissions
+
+from . import executors, filters, models, serializers
 
 
 class SlurmServiceViewSet(structure_views.BaseServiceViewSet):
@@ -21,3 +24,14 @@ class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass
     queryset = models.Allocation.objects.all()
     serializer_class = serializers.AllocationSerializer
     filter_class = filters.AllocationFilter
+    create_permissions = [structure_permissions.is_owner]
+    update_permissions = [structure_permissions.is_owner]
+    destroy_permissions = [structure_permissions.is_staff]
+    cancel_permissions = [structure_permissions.is_owner]
+    delete_executor = executors.AllocationDeleteExecutor
+
+    @decorators.detail_route(methods=['post'])
+    def cancel(self, request, uuid=None):
+        allocation = self.get_object()
+        allocation.get_backend().cancel_allocation(allocation)
+        return response.Response(status=status.HTTP_200_OK)

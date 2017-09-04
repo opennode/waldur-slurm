@@ -53,7 +53,7 @@ class SlurmClient(object):
     def delete_account(self, name):
         return self._execute_command(['remove', 'account', 'where', 'name=%s' % name])
 
-    def set_account_quota(self, account, value):
+    def set_cpu_limit(self, account, value):
         quota = 'GrpTRESMins=cpu=%s' % int(value)
         return self._execute_command(['modify', 'account', account, 'set', quota])
 
