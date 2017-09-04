@@ -36,3 +36,7 @@ class Allocation(structure_models.NewResource):
     cpu_limit = models.IntegerField(default=0)
     cpu_usage = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
+
+    @classmethod
+    def get_url_name(cls):
+        return 'slurm-allocation'

@@ -125,7 +125,7 @@ class SlurmClient(object):
         return accounts
 
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
-        server ='%s@%s' % (self.username, self.hostname)
+        server = '%s@%s' % (self.username, self.hostname)
         port = str(self.port)
         account_command = [command_name, '--parsable2', '--noheader']
         if immediate:
