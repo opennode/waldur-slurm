@@ -5,15 +5,15 @@ from nodeconductor.structure import views as structure_views
 from . import filters, models, serializers
 
 
-class SLURMServiceViewSet(structure_views.BaseServiceViewSet):
-    queryset = models.SLURMService.objects.all()
+class SlurmServiceViewSet(structure_views.BaseServiceViewSet):
+    queryset = models.SlurmService.objects.all()
     serializer_class = serializers.ServiceSerializer
 
 
-class SLURMServiceProjectLinkViewSet(structure_views.BaseServiceProjectLinkViewSet):
-    queryset = models.SLURMServiceProjectLink.objects.all()
+class SlurmServiceProjectLinkViewSet(structure_views.BaseServiceProjectLinkViewSet):
+    queryset = models.SlurmServiceProjectLink.objects.all()
     serializer_class = serializers.ServiceProjectLinkSerializer
-    filter_class = filters.SLURMServiceProjectLinkFilter
+    filter_class = filters.SlurmServiceProjectLinkFilter
 
 
 class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass,

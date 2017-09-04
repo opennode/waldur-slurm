@@ -19,7 +19,7 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
     }
 
     class Meta(structure_serializers.BaseServiceSerializer.Meta):
-        model = models.SLURMService
+        model = models.SlurmService
         required_fields = ('hostname', 'username')
         extra_field_options = {
             'username': {
@@ -30,7 +30,7 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
 
 class ServiceProjectLinkSerializer(structure_serializers.BaseServiceProjectLinkSerializer):
     class Meta(structure_serializers.BaseServiceProjectLinkSerializer.Meta):
-        model = models.SLURMServiceProjectLink
+        model = models.SlurmServiceProjectLink
         extra_kwargs = {
             'service': {'lookup_field': 'uuid', 'view_name': 'slurm-detail'},
         }
@@ -45,7 +45,7 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
 
     service_project_link = rf_serializers.HyperlinkedRelatedField(
         view_name='slurm-spl-detail',
-        queryset=models.SLURMServiceProjectLink.objects.all())
+        queryset=models.SlurmServiceProjectLink.objects.all())
 
     class Meta(structure_serializers.BaseResourceSerializer.Meta):
         model = models.Allocation

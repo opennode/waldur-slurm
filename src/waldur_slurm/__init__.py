@@ -1,1 +1,1 @@
-default_app_config = 'waldur_slurm.apps.SLURMConfig'
+default_app_config = 'waldur_slurm.apps.SlurmConfig'

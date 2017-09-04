@@ -1,10 +1,9 @@
 from __future__ import unicode_literals
 
 from django.apps import AppConfig
-from django.db.models import signals
 
 
-class SLURMConfig(AppConfig):
+class SlurmConfig(AppConfig):
     name = 'waldur_slurm'
     verbose_name = 'SLURM'
     service_name = 'SLURM'
@@ -12,5 +11,5 @@ class SLURMConfig(AppConfig):
     def ready(self):
         from nodeconductor.structure import SupportedServices
 
-        from .backend import SLURMBackend
-        SupportedServices.register_backend(SLURMBackend)
+        from .backend import SlurmBackend
+        SupportedServices.register_backend(SlurmBackend)

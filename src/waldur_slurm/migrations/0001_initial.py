@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
             bases=(nodeconductor.core.models.DescendantMixin, nodeconductor.core.models.BackendModelMixin, nodeconductor.logging.loggers.LoggableMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='SLURMService',
+            name='SlurmService',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('uuid', nodeconductor.core.fields.UUIDField()),
@@ -58,11 +58,11 @@ class Migration(migrations.Migration):
             bases=(nodeconductor.core.models.DescendantMixin, nodeconductor.logging.loggers.LoggableMixin, models.Model),
         ),
         migrations.CreateModel(
-            name='SLURMServiceProjectLink',
+            name='SlurmServiceProjectLink',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='structure.Project')),
-                ('service', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='waldur_slurm.SLURMService')),
+                ('service', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='waldur_slurm.SlurmService')),
             ],
             options={
                 'abstract': False,
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='slurmservice',
             name='projects',
-            field=models.ManyToManyField(related_name='_slurmservice_projects_+', through='waldur_slurm.SLURMServiceProjectLink', to='structure.Project'),
+            field=models.ManyToManyField(related_name='_slurmservice_projects_+', through='waldur_slurm.SlurmServiceProjectLink', to='structure.Project'),
         ),
         migrations.AddField(
             model_name='slurmservice',
@@ -84,7 +84,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='allocation',
             name='service_project_link',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='allocations', to='waldur_slurm.SLURMServiceProjectLink'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='allocations', to='waldur_slurm.SlurmServiceProjectLink'),
         ),
         migrations.AddField(
             model_name='allocation',

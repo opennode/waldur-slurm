@@ -1,10 +1,12 @@
 from nodeconductor.core import NodeConductorExtension
 
 
-class SLURMExtension(NodeConductorExtension):
+class SlurmExtension(NodeConductorExtension):
     class Settings:
         WALDUR_SLURM = {
-            'ACCOUNT_NAME_PREFIX': 'waldur_',
+            'CUSTOMER_PREFIX': 'waldur_customer_',
+            'PROJECT_PREFIX': 'waldur_project_',
+            'ALLOCATION_PREFIX': 'waldur_allocation_',
             'PRIVATE_KEY_PATH': '/etc/waldur/id_rsa',
         }
 

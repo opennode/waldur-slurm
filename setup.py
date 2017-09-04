@@ -36,7 +36,7 @@ setup(
     zip_safe=False,
     entry_points={
         'nodeconductor_extensions': (
-            'waldur_slurm = waldur_slurm.extension:SLURMExtension',
+            'waldur_slurm = waldur_slurm.extension:SlurmExtension',
         ),
     },
     include_package_data=True,
