@@ -4,6 +4,10 @@ import re
 import six
 import subprocess
 
+from django.utils import timezone
+
+from nodeconductor.core import utils as core_utils
+
 
 class SlurmError(Exception):
     pass
@@ -26,7 +30,7 @@ class SlurmClient(object):
 
     def list_accounts(self):
         output = self._execute_command(['list', 'account'])
-        return [self._parse_account(line) for line in output.splitlines()]
+        return [self._parse_account(line) for line in output.splitlines() if '|' in line]
 
     def _parse_account(self, line):
         parts = line.split('|')
@@ -55,7 +59,7 @@ class SlurmClient(object):
 
     def list_associations(self):
         output = self._execute_command(['list', 'association'])
-        return [self._parse_association(line) for line in output.splitlines()]
+        return [self._parse_association(line) for line in output.splitlines() if '|' in line]
 
     def _parse_association(self, line):
         parts = line.split('|')
@@ -79,7 +83,7 @@ class SlurmClient(object):
 
     def list_users(self):
         output = self._execute_command(['list', 'user'])
-        return [self._parse_user(line) for line in output.splitlines()]
+        return [self._parse_user(line) for line in output.splitlines() if '|' in line]
 
     def _parse_user(self, line):
         parts = line.split('|')
@@ -97,10 +101,35 @@ class SlurmClient(object):
     def delete_user(self, username):
         return self._execute_command(['remove', 'user', username])
 
-    def _execute_command(self, command):
+    def get_usage(self):
+        today = timezone.now()
+        month_start = core_utils.month_start(today).strftime('%Y-%m-%d')
+        month_end = core_utils.month_end(today).strftime('%Y-%m-%d')
+        args = [
+            'cluster', 'AccountUtilizationByUser',
+            'Start=%s' % month_start,
+            'End=%s' % month_end,
+            'Accounts=root',
+        ]
+        output = self._execute_command(args, 'sreport', immediate=False)
+        accounts = {}
+        for line in output.splitlines():
+            if '|' not in line:
+                continue
+            parts = line.split('|')
+            account = parts[1]
+            user = parts[2]
+            usage = parts[4]
+            if not user:
+                accounts[account] = usage
+        return accounts
+
+    def _execute_command(self, command, command_name='sacctmgr', immediate=True):
         server ='%s@%s' % (self.username, self.hostname)
         port = str(self.port)
-        account_command = ['sudo', 'sacctmgr', '--immediate', '--parsable2', '--noheader']
+        account_command = [command_name, '--parsable2', '--noheader']
+        if immediate:
+            account_command.append('--immediate')
         account_command.extend(command)
         ssh_command = ['ssh', server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
         try:

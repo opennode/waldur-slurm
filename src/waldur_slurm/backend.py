@@ -1,13 +1,14 @@
 import logging
+import six
 
 from django.conf import settings as django_settings
 
 from nodeconductor.structure import models as structure_models
-from nodeconductor.structure import ServiceBackend
+from nodeconductor.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
 
 from . import models
-from .client import SlurmClient
+from .client import SlurmClient, SlurmError
 
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,16 @@ class SlurmBackend(ServiceBackend):
             port=self.settings.options['port'],
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
         )
+
+    def ping(self, raise_exception=False):
+        try:
+            self.client.list_accounts()
+        except SlurmError as e:
+            if raise_exception:
+                six.reraise(ServiceBackendError, e)
+            return False
+        else:
+            return True
 
     def sync(self):
         if self.get_allocation_queryset().count() == 0:
@@ -113,7 +124,7 @@ class SlurmBackend(ServiceBackend):
             description=allocation.name,
             organization=self.get_project_name(allocation.project),
         )
-        self.client.set_account_quota(allocation_name, allocation.cpu)
+        self.client.set_account_quota(allocation_name, allocation.cpu_limit)
 
     def sync_associations(self):
         freeipa_profiles = {profile.user: profile.username
@@ -141,7 +152,7 @@ class SlurmBackend(ServiceBackend):
 
     def sync_quotas(self):
         waldur_quotas = {
-            self.get_allocation_name(allocation): allocation.cpu
+            self.get_allocation_name(allocation): allocation.cpu_limit
             for allocation in self.get_allocation_queryset()
         }
 
@@ -154,6 +165,18 @@ class SlurmBackend(ServiceBackend):
         for account, value in waldur_quotas.items():
             if slurm_quotas.get(account) != value:
                 self.client.set_account_quota(account, value)
+
+    def sync_usage(self):
+        waldur_allocations = {
+            self.get_allocation_name(allocation): allocation
+            for allocation in self.get_allocation_queryset()
+        }
+        usage = self.client.get_usage()
+        for account, value in usage.items():
+            allocation = waldur_allocations.get(account)
+            if allocation:
+                allocation.cpu_usage = value
+                allocation.save()
 
     def get_allocation_queryset(self):
         return models.Allocation.objects.filter(service_project_link__service__settings=self.settings)
