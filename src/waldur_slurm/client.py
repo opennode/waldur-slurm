@@ -40,6 +40,13 @@ class SlurmClient(object):
             organization=parts[2],
         )
 
+    def get_account(self, name):
+        output = self._execute_command(['show', 'account', name])
+        lines = [line for line in output.splitlines() if '|' in line]
+        if len(lines) == 0:
+            return None
+        return self._parse_account(lines[0])
+
     def create_account(self, name, description, organization, parent_name=None):
         parts = [
             'add', 'account', name,
@@ -60,6 +67,15 @@ class SlurmClient(object):
     def list_associations(self):
         output = self._execute_command(['list', 'association'])
         return [self._parse_association(line) for line in output.splitlines() if '|' in line]
+
+    def get_association(self, user, account):
+        output = self._execute_command([
+            'show', 'association', 'where', 'user=%s' % user, 'account=%s' % account
+        ])
+        lines = [line for line in output.splitlines() if '|' in line]
+        if len(lines) == 0:
+            return None
+        return self._parse_association(lines[0])
 
     def _parse_association(self, line):
         parts = line.split('|')
@@ -127,7 +143,7 @@ class SlurmClient(object):
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
         server = '%s@%s' % (self.username, self.hostname)
         port = str(self.port)
-        account_command = [command_name, '--parsable2', '--noheader']
+        account_command = ['sudo', command_name, '--parsable2', '--noheader']
         if immediate:
             account_command.append('--immediate')
         account_command.extend(command)

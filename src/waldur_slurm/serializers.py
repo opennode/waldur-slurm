@@ -49,8 +49,12 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
 
     class Meta(structure_serializers.BaseResourceSerializer.Meta):
         model = models.Allocation
-        fields = structure_serializers.BaseResourceSerializer.Meta.fields + ('cpu_limit', 'cpu_usage')
-        read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + ('cpu_usage', 'is_active')
+        fields = structure_serializers.BaseResourceSerializer.Meta.fields + (
+            'cpu_limit', 'cpu_usage', 'is_active'
+        )
+        read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + (
+            'cpu_usage', 'is_active'
+        )
         extra_kwargs = dict(
             url={'lookup_field': 'uuid', 'view_name': 'slurm-allocation-detail'},
         )

@@ -3,7 +3,6 @@ import six
 
 from django.conf import settings as django_settings
 
-from nodeconductor.structure import models as structure_models
 from nodeconductor.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
 
@@ -24,6 +23,9 @@ class SlurmBackend(ServiceBackend):
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
         )
 
+    def sync(self):
+        pass
+
     def ping(self, raise_exception=False):
         try:
             self.client.list_accounts()
@@ -34,155 +36,61 @@ class SlurmBackend(ServiceBackend):
         else:
             return True
 
-    def sync(self):
-        if self.get_allocation_queryset().count() == 0:
-            logging.debug('Skipping SLURM service synchronization because there are no allocations.')
-            return
-
-        self.sync_customers()
-        self.sync_projects()
-        self.sync_allocations()
-        self.sync_associations()
-        self.sync_quotas()
-
-    def sync_customers(self):
-        slurm_customers = set(self.list_customers())
-        waldur_customers_map = {
-            customer.uuid.hex: customer
-            for customer in structure_models.Customer.objects.all()
-        }
-        waldur_customers = set(waldur_customers_map.keys())
-
-        new_customers = waldur_customers - slurm_customers
-        for customer in new_customers:
-            self.create_customer(waldur_customers_map[customer])
-
-        stale_customers = slurm_customers - waldur_customers
-        for customer in stale_customers:
-            self.delete_customer(customer)
-
-    def list_customers(self):
-        return self.list_accounts(django_settings.WALDUR_SLURM['CUSTOMER_PREFIX'])
-
-    def create_customer(self, customer):
-        customer_name = self.get_customer_name(customer)
-        return self.client.create_account(customer_name, customer.name, customer_name)
-
-    def delete_customer(self, customer_uuid):
-        self.client.delete_account(self.get_customer_name(customer_uuid))
-
-    def get_customer_name(self, customer):
-        return self.get_account_name(django_settings.WALDUR_SLURM['CUSTOMER_PREFIX'], customer)
-
-    def sync_projects(self):
-        slurm_projects = set(self.list_projects())
-        waldur_projects_map = {
-            project.uuid.hex: project
-            for project in structure_models.Project.objects.all()
-        }
-        waldur_projects = set(waldur_projects_map.keys())
-
-        new_projects = waldur_projects - slurm_projects
-        for project in new_projects:
-            self.create_project(waldur_projects_map[project])
-
-        stale_projects = slurm_projects - waldur_projects
-        for project in stale_projects:
-            self.delete_project(project)
-
-    def list_projects(self):
-        return self.list_accounts(django_settings.WALDUR_SLURM['PROJECT_PREFIX'])
-
-    def create_project(self, project):
-        name = self.get_project_name(project)
-        parent_name = self.get_customer_name(project.customer)
-        return self.client.create_account(name, project.name, name, parent_name)
-
-    def delete_project(self, project_uuid):
-        self.client.delete_account(self.get_project_name(project_uuid))
-
-    def get_project_name(self, project):
-        return self.get_account_name(django_settings.WALDUR_SLURM['PROJECT_PREFIX'], project)
-
-    def sync_allocations(self):
-        slurm_allocations = set(self.list_allocations())
-        waldur_allocations_map = {
-            allocation.uuid.hex: allocation
-            for allocation in self.get_allocation_queryset()
-        }
-        waldur_allocations = set(waldur_allocations_map.keys())
-
-        new_allocations = waldur_allocations - slurm_allocations
-        for allocation in new_allocations:
-            self.create_allocation(waldur_allocations_map[allocation])
-
-        stale_allocations = slurm_allocations - waldur_allocations
-        for allocation in stale_allocations:
-            self.client.delete_account(self.get_allocation_name(allocation))
-
-    def list_allocations(self):
-        return self.list_accounts(django_settings.WALDUR_SLURM['ALLOCATION_PREFIX'])
-
     def create_allocation(self, allocation):
-        allocation_name = self.get_allocation_name(allocation)
+        project = allocation.service_project_link.project
+        customer_account = self.get_customer_name(project.customer)
+        project_account = self.get_project_name(project)
+        allocation_account = self.get_allocation_name(allocation)
+
+        if not self.client.get_account(customer_account):
+            self.create_customer(project.customer)
+
+        if not self.client.get_account(project_account):
+            self.create_project(project)
+
         self.client.create_account(
-            name=allocation_name,
+            name=allocation_account,
             description=allocation.name,
-            organization=self.get_project_name(allocation.project),
+            organization=project_account,
         )
-        self.client.set_cpu_limit(allocation_name, allocation.cpu_limit)
+        self.client.set_cpu_limit(allocation_account, allocation.cpu_limit)
 
-    def cancel_allocation(self, allocation):
-        if allocation.cpu_limit != allocation.cpu_usage:
-            self.client.set_cpu_limit(self.get_allocation_name(allocation), allocation.cpu_usage)
-            allocation.cpu_limit = allocation.cpu_usage
-        allocation.is_active = False
-        allocation.save()
-
-    def delete_allocation(self, allocation):
-        self.client.delete_account(self.get_allocation_name(allocation))
-
-    def sync_associations(self):
         freeipa_profiles = {
             profile.user: profile.username
             for profile in freeipa_models.Profile.objects.all()
         }
 
-        waldur_associations = set()
-        for allocation in self.get_allocation_queryset():
-            for user in allocation.service_project_link.project.customer.get_users():
-                if user in freeipa_profiles:
-                    key = (self.get_allocation_name(allocation), freeipa_profiles[user].lower())
-                    waldur_associations.add(key)
+        for user in allocation.service_project_link.project.customer.get_users():
+            username = freeipa_profiles.get(user)
+            if username:
+                self.client.create_association(username.lower(), allocation_account)
 
-        slurm_associations = set()
-        for association in self.client.list_associations():
-            if association.user.startswith(django_settings.WALDUR_FREEIPA['USERNAME_PREFIX']):
-                slurm_associations.add((association.account, association.user))
+    def delete_allocation(self, allocation):
+        self.client.delete_account(self.get_allocation_name(allocation))
 
-        new_associations = waldur_associations - slurm_associations
-        for (allocation, username) in new_associations:
-            self.client.create_association(username, allocation)
+        project = allocation.service_project_link.project
+        if self.get_allocation_queryset().filter(project=project).count() == 0:
+            self.delete_project(project)
 
-        stale_associations = slurm_associations - waldur_associations
-        for (allocation, username) in stale_associations:
-            self.client.delete_association(username, allocation)
+        if self.get_allocation_queryset().filter(project__customer=project.customer).count() == 0:
+            self.delete_customer(project.customer)
 
-    def sync_quotas(self):
-        waldur_quotas = {
-            self.get_allocation_name(allocation): allocation.cpu_limit
-            for allocation in self.get_allocation_queryset()
-        }
+    def add_user(self, allocation, username):
+        if not self.client.get_association(username, self.get_project_name(allocation)):
+            self.client.create_association(username, self.get_project_name(allocation))
 
-        slurm_quotas = {
-            association.account: association.value
-            for association in self.client.list_associations()
-            if association.user.startswith(django_settings.WALDUR_SLURM['ALLOCATION_PREFIX'])
-        }
+    def delete_user(self, allocation, username):
+        if self.client.get_association(username, self.get_project_name(allocation)):
+            self.client.delete_association(username, self.get_project_name(allocation))
 
-        for account, value in waldur_quotas.items():
-            if slurm_quotas.get(account) != value:
-                self.client.set_cpu_limit(account, value)
+    def update_allocation(self, allocation):
+        self.client.set_cpu_limit(self.get_allocation_name(allocation), allocation.cpu_limit)
+
+    def cancel_allocation(self, allocation):
+        self.client.set_cpu_limit(self.get_allocation_name(allocation), allocation.cpu_usage)
+        allocation.cpu_limit = allocation.cpu_usage
+        allocation.is_active = False
+        allocation.save()
 
     def sync_usage(self):
         waldur_allocations = {
@@ -192,12 +100,32 @@ class SlurmBackend(ServiceBackend):
         usage = self.client.get_usage(waldur_allocations.keys())
         for account, value in usage.items():
             allocation = waldur_allocations.get(account)
-            if allocation:
-                allocation.cpu_usage = value
-                allocation.save()
+            allocation.cpu_usage = value
+            allocation.save()
+
+    def create_customer(self, customer):
+        customer_name = self.get_customer_name(customer)
+        return self.client.create_account(customer_name, customer.name, customer_name)
+
+    def delete_customer(self, customer_uuid):
+        self.client.delete_account(self.get_customer_name(customer_uuid))
+
+    def create_project(self, project):
+        name = self.get_project_name(project)
+        parent_name = self.get_customer_name(project.customer)
+        return self.client.create_account(name, project.name, name, parent_name)
+
+    def delete_project(self, project_uuid):
+        self.client.delete_account(self.get_project_name(project_uuid))
 
     def get_allocation_queryset(self):
         return models.Allocation.objects.filter(service_project_link__service__settings=self.settings)
+
+    def get_customer_name(self, customer):
+        return self.get_account_name(django_settings.WALDUR_SLURM['CUSTOMER_PREFIX'], customer)
+
+    def get_project_name(self, project):
+        return self.get_account_name(django_settings.WALDUR_SLURM['PROJECT_PREFIX'], project)
 
     def get_allocation_name(self, allocation):
         return self.get_account_name(django_settings.WALDUR_SLURM['ALLOCATION_PREFIX'], allocation)
@@ -205,12 +133,3 @@ class SlurmBackend(ServiceBackend):
     def get_account_name(self, prefix, object_or_uuid):
         key = isinstance(object_or_uuid, basestring) and object_or_uuid or object_or_uuid.uuid.hex
         return '%s%s' % (prefix, key)
-
-    def list_accounts(self, prefix):
-        accounts = []
-        for account in self.client.list_accounts():
-            parts = account.name.split(prefix)
-            if len(parts) != 2:
-                continue
-            accounts.append(parts[1])
-        return accounts
