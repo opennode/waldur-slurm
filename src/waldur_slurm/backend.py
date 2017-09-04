@@ -32,6 +32,7 @@ class SlurmBackend(ServiceBackend):
         self.sync_projects()
         self.sync_allocations()
         self.sync_associations()
+        self.sync_quotas()
 
     def sync_customers(self):
         slurm_customers = set(self.list_customers())
@@ -137,6 +138,22 @@ class SlurmBackend(ServiceBackend):
         stale_associations = slurm_associations - waldur_associations
         for (allocation, username) in stale_associations:
             self.client.delete_association(username, allocation)
+
+    def sync_quotas(self):
+        waldur_quotas = {
+            self.get_allocation_name(allocation): allocation.cpu
+            for allocation in self.get_allocation_queryset()
+        }
+
+        slurm_quotas = {
+            association.account: association.value
+            for association in self.client.list_associations()
+            if association.user.startswith(django_settings.WALDUR_SLURM['ALLOCATION_PREFIX'])
+        }
+
+        for account, value in waldur_quotas.items():
+            if slurm_quotas.get(account) != value:
+                self.client.set_account_quota(account, value)
 
     def get_allocation_queryset(self):
         return models.Allocation.objects.filter(service_project_link__service__settings=self.settings)

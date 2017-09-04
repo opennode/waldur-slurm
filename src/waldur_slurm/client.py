@@ -1,5 +1,6 @@
 import collections
 import logging
+import re
 import six
 import subprocess
 
@@ -58,10 +59,14 @@ class SlurmClient(object):
 
     def _parse_association(self, line):
         parts = line.split('|')
+        value = parts[9]
+        match = re.match('cpu=(\d+)', value)
+        if match:
+            value = int(match.group(1))
         return Association(
             account=parts[1],
             user=parts[2],
-            value=parts[9],
+            value=value,
         )
 
     def create_association(self, username, account):
