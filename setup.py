@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     'nodeconductor>=0.145.5',
+    'waldur-freeipa>=0.2.2',
 ]
 
 

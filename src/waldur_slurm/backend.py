@@ -4,6 +4,7 @@ from django.conf import settings as django_settings
 
 from nodeconductor.structure import models as structure_models
 from nodeconductor.structure import ServiceBackend
+from waldur_freeipa import models as freeipa_models
 
 from . import models
 from .client import SlurmClient
@@ -114,15 +115,20 @@ class SlurmBackend(ServiceBackend):
         self.client.set_account_quota(allocation_name, allocation.cpu)
 
     def sync_associations(self):
+        freeipa_profiles = {profile.user: profile.username
+                            for profile in freeipa_models.Profile.objects.all()}
+
         waldur_associations = set()
         for allocation in self.get_allocation_queryset():
             for user in allocation.service_project_link.project.customer.get_users():
-                key = (self.get_allocation_name(allocation), user.username.lower())
-                waldur_associations.add(key)
+                if user in freeipa_profiles:
+                    key = (self.get_allocation_name(allocation), freeipa_profiles[user].lower())
+                    waldur_associations.add(key)
 
-        slurm_associations = {(association.account, association.user)
-                              for association in self.client.list_associations()
-                              if association.user}
+        slurm_associations = set()
+        for association in self.client.list_associations():
+            if association.user.startswith(django_settings.WALDUR_FREEIPA['USERNAME_PREFIX']):
+                slurm_associations.add((association.account, association.user))
 
         new_associations = waldur_associations - slurm_associations
         for (allocation, username) in new_associations:
