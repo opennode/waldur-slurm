@@ -150,7 +150,8 @@ class SlurmClient(object):
         if immediate:
             account_command.append('--immediate')
         account_command.extend(command)
-        ssh_command = ['ssh', server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
+        ssh_command = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
+                       server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
         try:
             logging.debug('Executing SSH command: %s', ' '.join(ssh_command))
             return subprocess.check_output(ssh_command, stderr=subprocess.STDOUT)  # nosec
