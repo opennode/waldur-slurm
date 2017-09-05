@@ -17,11 +17,11 @@ class SlurmBackend(ServiceBackend):
     def __init__(self, settings):
         self.settings = settings
         self.client = SlurmClient(
-            hostname=self.settings.options['hostname'],
+            hostname=self.settings.options.get('hostname', 'localhost'),
             username=self.settings.username,
-            port=self.settings.options['port'],
+            port=self.settings.options.get('port', 22),
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
-            use_sudo=self.settings.options['use_sudo'],
+            use_sudo=self.settings.options.get('use_sudo', False),
         )
 
     def sync(self):
