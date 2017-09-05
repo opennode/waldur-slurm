@@ -16,6 +16,7 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
     SERVICE_ACCOUNT_EXTRA_FIELDS = {
         'hostname': _('Hostname or IP address'),
         'port': '',
+        'use_sudo': _('Set to true to activate privilege escalation')
     }
 
     class Meta(structure_serializers.BaseServiceSerializer.Meta):
@@ -24,6 +25,9 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
         extra_field_options = {
             'username': {
                 'default_value': 'root',
+            },
+            'use_sudo': {
+                'default_value': False,
             },
         }
 

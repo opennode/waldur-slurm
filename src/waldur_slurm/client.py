@@ -22,11 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 class SlurmClient(object):
-    def __init__(self, hostname, key_path, username='root', port=22):
+    def __init__(self, hostname, key_path, username='root', port=22, use_sudo=False):
         self.hostname = hostname
         self.key_path = key_path
         self.username = username
         self.port = port
+        self.use_sudo = use_sudo
 
     def list_accounts(self):
         output = self._execute_command(['list', 'account'])
@@ -143,7 +144,9 @@ class SlurmClient(object):
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
         server = '%s@%s' % (self.username, self.hostname)
         port = str(self.port)
-        account_command = ['sudo', command_name, '--parsable2', '--noheader']
+        account_command = [command_name, '--parsable2', '--noheader']
+        if self.use_sudo:
+            account_command.insert(0, 'sudo')
         if immediate:
             account_command.append('--immediate')
         account_command.extend(command)

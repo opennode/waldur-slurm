@@ -21,6 +21,7 @@ class SlurmBackend(ServiceBackend):
             username=self.settings.username,
             port=self.settings.options['port'],
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
+            use_sudo=self.settings.options['use_sudo'],
         )
 
     def sync(self):
