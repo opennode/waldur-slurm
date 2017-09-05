@@ -2,7 +2,7 @@ import collections
 import logging
 import re
 import six
-import subprocess
+import subprocess  # nosec
 
 from django.utils import timezone
 
