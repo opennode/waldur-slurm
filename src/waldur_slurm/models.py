@@ -33,7 +33,7 @@ class SlurmServiceProjectLink(structure_models.ServiceProjectLink):
 class Allocation(structure_models.NewResource):
     service_project_link = models.ForeignKey(
         SlurmServiceProjectLink, related_name='allocations', on_delete=models.PROTECT)
-    cpu_limit = models.IntegerField(default=0)
+    cpu_limit = models.IntegerField(default=-1)
     cpu_usage = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 

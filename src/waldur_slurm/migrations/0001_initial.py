@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ('error_message', models.TextField(blank=True)),
                 ('state', django_fsm.FSMIntegerField(choices=[(5, 'Creation Scheduled'), (6, 'Creating'), (1, 'Update Scheduled'), (2, 'Updating'), (7, 'Deletion Scheduled'), (8, 'Deleting'), (3, 'OK'), (4, 'Erred')], default=5)),
                 ('backend_id', models.CharField(blank=True, max_length=255)),
-                ('cpu_limit', models.IntegerField(default=0)),
+                ('cpu_limit', models.IntegerField(default=-1)),
                 ('cpu_usage', models.IntegerField(default=0)),
                 ('is_active', models.BooleanField(default=True)),
             ],
