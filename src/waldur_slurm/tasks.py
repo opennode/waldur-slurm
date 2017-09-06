@@ -28,4 +28,4 @@ def delete_user(serialized_profile):
 @shared_task(name='waldur_slurm.sync_usage')
 def sync_usage():
     for settings in structure_models.ServiceSettings.objects.filter(type='SLURM'):
-        settings.sync_usage()
+        settings.get_backend().sync_usage()
