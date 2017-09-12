@@ -18,7 +18,7 @@ class AllocationUpdateExecutor(core_executors.UpdateExecutor):
     def get_task_signature(cls, volume, serialized_volume, **kwargs):
         return core_tasks.BackendMethodTask().si(
             serialized_volume,
-            'update_allocation',
+            'set_resource_limits',
             state_transition='begin_updating'
         )
 
