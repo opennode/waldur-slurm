@@ -7,7 +7,7 @@ from nodeconductor.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
 
 from . import models
-from .client import SlurmClient, SlurmError
+from .client import SlurmClient, SlurmError, Quotas
 
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class SlurmBackend(ServiceBackend):
         self.settings = settings
         self.client = SlurmClient(
             hostname=self.settings.options.get('hostname', 'localhost'),
-            username=self.settings.username,
+            username=self.settings.username or 'root',
             port=self.settings.options.get('port', 22),
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
             use_sudo=self.settings.options.get('use_sudo', False),
@@ -54,7 +54,7 @@ class SlurmBackend(ServiceBackend):
             description=allocation.name,
             organization=project_account,
         )
-        self.client.set_cpu_limit(allocation_account, allocation.cpu_limit)
+        self.set_resource_limits(allocation)
 
         freeipa_profiles = {
             profile.user: profile.username
@@ -84,12 +84,17 @@ class SlurmBackend(ServiceBackend):
         if self.client.get_association(username, self.get_project_name(allocation)):
             self.client.delete_association(username, self.get_project_name(allocation))
 
-    def update_allocation(self, allocation):
-        self.client.set_cpu_limit(self.get_allocation_name(allocation), allocation.cpu_limit)
+    def set_resource_limits(self, allocation):
+        quotas = Quotas(allocation.cpu_limit, allocation.gpu_limit, allocation.ram_limit)
+        self.client.set_resource_limits(self.get_allocation_name(allocation), quotas)
 
     def cancel_allocation(self, allocation):
-        self.client.set_cpu_limit(self.get_allocation_name(allocation), allocation.cpu_usage)
         allocation.cpu_limit = allocation.cpu_usage
+        allocation.gpu_limit = allocation.gpu_usage
+        allocation.ram_limit = allocation.ram_usage
+
+        self.set_resource_limits(allocation)
+
         allocation.is_active = False
         allocation.save()
 
@@ -99,10 +104,15 @@ class SlurmBackend(ServiceBackend):
             for allocation in self.get_allocation_queryset()
         }
         usage = self.client.get_usage(waldur_allocations.keys())
-        for account, value in usage.items():
+        for account, quotas in usage.items():
             allocation = waldur_allocations.get(account)
-            allocation.cpu_usage = value
-            allocation.save()
+            if not allocation:
+                logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
+                continue
+            allocation.cpu_usage = quotas.cpu
+            allocation.gpu_usage = quotas.gpu
+            allocation.ram_usage = quotas.ram
+            allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage'])
 
     def create_customer(self, customer):
         customer_name = self.get_customer_name(customer)

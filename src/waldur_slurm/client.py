@@ -18,6 +18,14 @@ Account = collections.namedtuple('Account', ['name', 'description', 'organizatio
 
 Association = collections.namedtuple('Association', ['account', 'user', 'value'])
 
+
+class Quotas(object):
+    def __init__(self, cpu, gpu, ram):
+        self.cpu = cpu
+        self.gpu = gpu
+        self.ram = ram
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,8 +69,8 @@ class SlurmClient(object):
     def delete_account(self, name):
         return self._execute_command(['remove', 'account', 'where', 'name=%s' % name])
 
-    def set_cpu_limit(self, account, value):
-        quota = 'GrpTRESMins=cpu=%s' % int(value)
+    def set_resource_limits(self, account, quotas):
+        quota = 'GrpTRESMins=cpu=%d,gres/gpu=%d,mem=%d' % (quotas.cpu, quotas.gpu, quotas.ram)
         return self._execute_command(['modify', 'account', account, 'set', quota])
 
     def list_associations(self):
@@ -124,6 +132,7 @@ class SlurmClient(object):
         month_end = core_utils.month_end(today).strftime('%Y-%m-%d')
         args = [
             'cluster', 'AccountUtilizationByUser',
+            '--tres="cpu,gres/gpu,mem"',
             'Start=%s' % month_start,
             'End=%s' % month_end,
             'Accounts=%s' % ','.join(accounts),
@@ -136,9 +145,17 @@ class SlurmClient(object):
             parts = line.split('|')
             account = parts[1]
             user = parts[2]
-            usage = parts[4]
+            tres_name = parts[4]
+            usage = parts[5]
             if not user:
-                accounts[account] = usage
+                if account not in accounts:
+                    accounts[account] = Quotas(0, 0, 0)
+                if tres_name == 'cpu':
+                    accounts[account].cpu = usage
+                elif tres_name == 'gres/gpu':
+                    accounts[account].gpu = usage
+                elif tres_name == 'mem':
+                    accounts[account].ram = usage
         return accounts
 
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
