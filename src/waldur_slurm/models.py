@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from model_utils import FieldTracker
 
 from nodeconductor.structure import models as structure_models
 
@@ -34,6 +35,7 @@ class Allocation(structure_models.NewResource):
     service_project_link = models.ForeignKey(
         SlurmServiceProjectLink, related_name='allocations', on_delete=models.PROTECT)
     is_active = models.BooleanField(default=True)
+    tracker = FieldTracker()
 
     cpu_limit = models.IntegerField(default=-1)
     cpu_usage = models.IntegerField(default=0)
