@@ -21,7 +21,7 @@ tests_requires = [
 
 setup(
     name='waldur-slurm',
-    version='0.1.1',
+    version='0.1.2',
     author='OpenNode Team',
     author_email='info@opennodecloud.com',
     url='http://waldur.com',
@@ -29,7 +29,7 @@ setup(
     long_description=open('README.rst').read(),
     license='MIT',
     package_dir={'': 'src'},
-    packages=find_packages('src', exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
+    packages=find_packages('src'),
     install_requires=install_requires,
     extras_require={
         'tests': tests_requires,
