@@ -29,7 +29,7 @@ setup(
     long_description=open('README.rst').read(),
     license='MIT',
     package_dir={'': 'src'},
-    packages=find_packages('src', exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
+    packages=find_packages('src'),
     install_requires=install_requires,
     extras_require={
         'tests': tests_requires,
