@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from model_utils import FieldTracker
 
 from nodeconductor.structure import models as structure_models
 
@@ -33,9 +34,17 @@ class SlurmServiceProjectLink(structure_models.ServiceProjectLink):
 class Allocation(structure_models.NewResource):
     service_project_link = models.ForeignKey(
         SlurmServiceProjectLink, related_name='allocations', on_delete=models.PROTECT)
+    is_active = models.BooleanField(default=True)
+    tracker = FieldTracker()
+
     cpu_limit = models.IntegerField(default=-1)
     cpu_usage = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)
+
+    gpu_limit = models.IntegerField(default=-1)
+    gpu_usage = models.IntegerField(default=0)
+
+    ram_limit = models.IntegerField(default=-1)
+    ram_usage = models.IntegerField(default=0)
 
     @classmethod
     def get_url_name(cls):
