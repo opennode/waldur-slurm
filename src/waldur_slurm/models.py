@@ -4,6 +4,8 @@ from model_utils import FieldTracker
 
 from nodeconductor.structure import models as structure_models
 
+from . import utils
+
 
 class SlurmService(structure_models.Service):
     projects = models.ManyToManyField(structure_models.Project,
@@ -49,3 +51,6 @@ class Allocation(structure_models.NewResource):
     @classmethod
     def get_url_name(cls):
         return 'slurm-allocation'
+
+    def usage_changed(self):
+        return any(self.tracker.has_changed(field) for field in utils.FIELD_NAMES)
