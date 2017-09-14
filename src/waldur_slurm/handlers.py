@@ -41,8 +41,8 @@ def update_quotas_on_allocation_usage_update(sender, instance, created=False, **
         return
 
     project = allocation.service_project_link.project
-    update_quotas(project, 'service_project_link__project')
-    update_quotas(project.customer, 'service_project_link__project__customer')
+    update_quotas(project, models.Allocation.Permissions.project_path)
+    update_quotas(project.customer, models.Allocation.Permissions.customer_path)
 
 
 def update_quotas(scope, path):
