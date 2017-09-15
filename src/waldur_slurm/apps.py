@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 from django.apps import AppConfig
 from django.db.models import signals
 
-from nodeconductor.quotas.fields import QuotaField
-
 
 class SlurmConfig(AppConfig):
     name = 'waldur_slurm'
@@ -12,6 +10,7 @@ class SlurmConfig(AppConfig):
     service_name = 'SLURM'
 
     def ready(self):
+        from nodeconductor.quotas.fields import QuotaField, CounterQuotaField
         from nodeconductor.structure import SupportedServices
         from nodeconductor.structure import models as structure_models
         from nodeconductor.structure import signals as structure_signals
@@ -58,6 +57,14 @@ class SlurmConfig(AppConfig):
                 name=quota,
                 quota_field=QuotaField(is_backend=True)
             )
+
+        structure_models.Project.add_quota_field(
+            name='nc_allocation_count',
+            quota_field=CounterQuotaField(
+                target_models=lambda: [models.Allocation],
+                path_to_scope='service_project_link.project',
+            )
+        )
 
         signals.post_save.connect(
             handlers.update_quotas_on_allocation_usage_update,

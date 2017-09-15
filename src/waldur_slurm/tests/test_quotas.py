@@ -42,3 +42,7 @@ class QuotasTest(TestCase):
 
         actual_ram_usage = self.fixture.customer.quotas.get(name='nc_ram_usage').usage
         self.assertEqual(self.expected_ram_usage, actual_ram_usage)
+
+    def test_allocation_count_is_updated_for_project(self):
+        self.assertEqual(self.fixture.project.quotas.get(name='nc_allocation_count').usage, 2)
+        self.assertEqual(fixtures.SlurmFixture().project.quotas.get(name='nc_allocation_count').usage, 0)
