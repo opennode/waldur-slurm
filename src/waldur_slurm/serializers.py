@@ -1,8 +1,11 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers as rf_serializers
+from rest_framework import exceptions as rf_exceptions
 
 from nodeconductor.core import serializers as core_serializers
 from nodeconductor.structure import serializers as structure_serializers
+from nodeconductor.structure.permissions import _has_owner_access
+from waldur_freeipa import models as freeipa_models
 
 from . import models
 
@@ -14,9 +17,10 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
         'username': '',
     }
     SERVICE_ACCOUNT_EXTRA_FIELDS = {
-        'hostname': _('Hostname or IP address'),
+        'hostname': _('Hostname or IP address of master node'),
         'port': '',
-        'use_sudo': _('Set to true to activate privilege escalation')
+        'use_sudo': _('Set to true to activate privilege escalation'),
+        'gateway': _('Hostname or IP address of gateway node'),
     }
 
     class Meta(structure_serializers.BaseServiceSerializer.Meta):
@@ -51,13 +55,29 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
         view_name='slurm-spl-detail',
         queryset=models.SlurmServiceProjectLink.objects.all())
 
+    username = rf_serializers.SerializerMethodField()
+    gateway = rf_serializers.SerializerMethodField()
+
+    def get_username(self, allocation):
+        request = self.context['request']
+        try:
+            profile = freeipa_models.Profile.objects.get(user=request.user)
+            return profile.username
+        except freeipa_models.Profile.DoesNotExist:
+            return None
+
+    def get_gateway(self, allocation):
+        options = allocation.service_project_link.service.settings.options
+        return options.get('gateway') or options.get('hostname')
+
     class Meta(structure_serializers.BaseResourceSerializer.Meta):
         model = models.Allocation
         fields = structure_serializers.BaseResourceSerializer.Meta.fields + (
             'cpu_limit', 'cpu_usage',
             'gpu_limit', 'gpu_usage',
             'ram_limit', 'ram_usage',
-            'is_active'
+            'username', 'gateway',
+            'is_active',
         )
         read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + (
             'cpu_usage', 'gpu_usage', 'ram_usage', 'is_active'
@@ -65,3 +85,13 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
         extra_kwargs = dict(
             url={'lookup_field': 'uuid', 'view_name': 'slurm-allocation-detail'},
         )
+
+    def validate_service_project_link(self, spl):
+        spl = super(AllocationSerializer, self).validate_service_project_link(spl)
+
+        user = self.context['request'].user
+        if not _has_owner_access(user, spl.project.customer):
+            raise rf_exceptions.PermissionDenied(
+                _('You do not have permissions to create allocation for given project.')
+            )
+        return spl
