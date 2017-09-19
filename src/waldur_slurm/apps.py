@@ -66,6 +66,14 @@ class SlurmConfig(AppConfig):
             )
         )
 
+        structure_models.Customer.add_quota_field(
+            name='nc_allocation_count',
+            quota_field=CounterQuotaField(
+                target_models=lambda: [models.Allocation],
+                path_to_scope='service_project_link.project.customer',
+            )
+        )
+
         signals.post_save.connect(
             handlers.update_quotas_on_allocation_usage_update,
             sender=models.Allocation,
