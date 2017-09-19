@@ -43,6 +43,6 @@ class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass
 
 
 def get_project_allocation_count(project):
-    return models.Allocation.objects.filter(service_project_link__project=project).count()
+    return project.quotas.get(name='nc_allocation_count').usage
 
 structure_views.ProjectCountersView.register_counter('slurm', get_project_allocation_count)
