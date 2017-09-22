@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers as rf_serializers
 from rest_framework import exceptions as rf_exceptions
@@ -84,6 +85,9 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
         )
         extra_kwargs = dict(
             url={'lookup_field': 'uuid', 'view_name': 'slurm-allocation-detail'},
+            cpu_limit={'validators': [MinValueValidator(0)]},
+            gpu_limit={'validators': [MinValueValidator(0)]},
+            ram_limit={'validators': [MinValueValidator(0)]},
         )
 
     def validate_service_project_link(self, spl):
