@@ -58,6 +58,7 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
 
     username = rf_serializers.SerializerMethodField()
     gateway = rf_serializers.SerializerMethodField()
+    backend_id = rf_serializers.SerializerMethodField()
 
     def get_username(self, allocation):
         request = self.context['request']
@@ -70,6 +71,9 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
     def get_gateway(self, allocation):
         options = allocation.service_project_link.service.settings.options
         return options.get('gateway') or options.get('hostname')
+
+    def get_backend_id(self, allocation):
+        return allocation.get_backend().get_allocation_name(allocation)
 
     class Meta(structure_serializers.BaseResourceSerializer.Meta):
         model = models.Allocation
