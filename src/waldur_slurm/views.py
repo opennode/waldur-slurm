@@ -25,13 +25,12 @@ class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass
     serializer_class = serializers.AllocationSerializer
     filter_class = filters.AllocationFilter
 
-    create_permissions = [structure_permissions.is_owner]
     create_executor = executors.AllocationCreateExecutor
 
     destroy_permissions = [structure_permissions.is_staff]
     delete_executor = executors.AllocationDeleteExecutor
 
-    update_permissions = [structure_permissions.is_owner]
+    partial_update_permissions = update_permissions = [structure_permissions.is_owner]
     update_executor = executors.AllocationUpdateExecutor
 
     @decorators.detail_route(methods=['post'])
@@ -44,6 +43,6 @@ class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass
 
 
 def get_project_allocation_count(project):
-    return models.Allocation.objects.filter(service_project_link__project=project).count()
+    return project.quotas.get(name='nc_allocation_count').usage
 
 structure_views.ProjectCountersView.register_counter('slurm', get_project_allocation_count)

@@ -54,3 +54,7 @@ class Allocation(structure_models.NewResource):
 
     def usage_changed(self):
         return any(self.tracker.has_changed(field) for field in utils.FIELD_NAMES)
+
+    @classmethod
+    def get_backend_fields(cls):
+        return super(Allocation, cls).get_backend_fields() + ('cpu_usage', 'gpu_usage', 'ram_usage')
