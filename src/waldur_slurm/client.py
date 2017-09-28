@@ -66,6 +66,9 @@ class SlurmClient(object):
             parts.append('parent=%s' % parent_name)
         return self._execute_command(parts)
 
+    def delete_all_users_from_account(self, name):
+        return self._execute_command(['remove', 'user', 'where', 'account=%s' % name])
+
     def delete_account(self, name):
         return self._execute_command(['remove', 'account', 'where', 'name=%s' % name])
 
