@@ -67,19 +67,10 @@ class SlurmBackend(ServiceBackend):
                 self.client.create_association(username.lower(), allocation_account)
 
     def delete_allocation(self, allocation):
-        freeipa_profiles = {
-            profile.user: profile.username
-            for profile in freeipa_models.Profile.objects.all()
-        }
-
-        for user in allocation.service_project_link.project.customer.get_users():
-            username = freeipa_profiles.get(user)
-            if username:
-                self.delete_user(allocation, username)
-
-        allocation_name = self.get_allocation_name(allocation)
-        if self.client.get_account(allocation_name):
-            self.client.delete_account(allocation_name)
+        account = self.get_allocation_name(allocation)
+        if self.client.get_account(account):
+            self.client.delete_all_users_from_account(account)
+            self.client.delete_account(account)
 
         project = allocation.service_project_link.project
         if self.get_allocation_queryset().filter(project=project).count() == 0:
