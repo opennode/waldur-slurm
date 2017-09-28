@@ -1,7 +1,7 @@
 Name: waldur-slurm
 Summary: SLURM plugin for Waldur
 Group: Development/Libraries
-Version: 0.2.0
+Version: 0.2.1
 Release: 1.el7
 License: MIT
 Url: http://waldur.com
@@ -36,6 +36,9 @@ rm -rf %{buildroot}
 %{python_sitelib}/*
 
 %changelog
+* Thu Sep 28 2017 Jenkins <jenkins@opennodecloud.com> - 0.2.1-1.el7
+- New upstream release
+
 * Wed Sep 27 2017 Jenkins <jenkins@opennodecloud.com> - 0.2.0-1.el7
 - New upstream release
 
