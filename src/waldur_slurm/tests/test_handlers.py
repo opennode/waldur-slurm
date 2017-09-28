@@ -1,10 +1,12 @@
+from __future__ import unicode_literals
+
 from django.test import TestCase
 import mock
 
 from nodeconductor.core import utils as core_utils
 from nodeconductor.structure import models as structure_models
 from nodeconductor.structure.tests import factories as structure_factories
-from waldur_freeipa.tests import factories as freeipa_factories
+from waldur_freeipa import models as freeipa_models
 
 from .. import tasks
 from . import fixtures
@@ -15,7 +17,7 @@ class SlurmAssociationSynchronizationTest(TestCase):
         self.fixture = fixtures.SlurmFixture()
         self.user = structure_factories.UserFactory()
 
-        self.freeipa_profile = freeipa_factories.ProfileFactory(user=self.user)
+        self.freeipa_profile = freeipa_models.Profile.objects.create(user=self.user, username='valid_username')
         self.serialized_profile = core_utils.serialize_instance(self.freeipa_profile)
 
         self.customer = self.fixture.customer
