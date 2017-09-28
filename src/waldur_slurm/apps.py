@@ -50,12 +50,12 @@ class SlurmConfig(AppConfig):
         for quota in utils.QUOTA_NAMES:
             structure_models.Customer.add_quota_field(
                 name=quota,
-                quota_field=QuotaField()
+                quota_field=QuotaField(is_backend=True)
             )
 
             structure_models.Project.add_quota_field(
                 name=quota,
-                quota_field=QuotaField()
+                quota_field=QuotaField(is_backend=True)
             )
 
         structure_models.Project.add_quota_field(
