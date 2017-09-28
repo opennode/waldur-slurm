@@ -19,7 +19,9 @@ def process_user_deletion(sender, instance, **kwargs):
 def process_role_granted(sender, structure, user, role, **kwargs):
     try:
         freeipa_profile = freeipa_models.Profile.objects.get(user=user)
-        tasks.add_user.delay(core_utils.serialize_instance(freeipa_profile))
+        serialized_profile = core_utils.serialize_instance(freeipa_profile)
+        serialized_structure = core_utils.serialize_instance(structure)
+        tasks.process_role_granted.delay(serialized_profile, serialized_structure)
     except freeipa_models.Profile.DoesNotExist:
         pass
 
@@ -27,7 +29,9 @@ def process_role_granted(sender, structure, user, role, **kwargs):
 def process_role_revoked(sender, structure, user, role, **kwargs):
     try:
         freeipa_profile = freeipa_models.Profile.objects.get(user=user)
-        tasks.delete_user.delay(core_utils.serialize_instance(freeipa_profile))
+        serialized_profile = core_utils.serialize_instance(freeipa_profile)
+        serialized_structure = core_utils.serialize_instance(structure)
+        tasks.process_role_revoked.delay(serialized_profile, serialized_structure)
     except freeipa_models.Profile.DoesNotExist:
         pass
 

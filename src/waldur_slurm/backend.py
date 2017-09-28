@@ -67,7 +67,10 @@ class SlurmBackend(ServiceBackend):
                 self.client.create_association(username.lower(), allocation_account)
 
     def delete_allocation(self, allocation):
-        self.client.delete_account(self.get_allocation_name(allocation))
+        account = self.get_allocation_name(allocation)
+        if self.client.get_account(account):
+            self.client.delete_all_users_from_account(account)
+            self.client.delete_account(account)
 
         project = allocation.service_project_link.project
         if self.get_allocation_queryset().filter(project=project).count() == 0:
@@ -77,12 +80,20 @@ class SlurmBackend(ServiceBackend):
             self.delete_customer(project.customer)
 
     def add_user(self, allocation, username):
-        if not self.client.get_association(username, self.get_project_name(allocation)):
-            self.client.create_association(username, self.get_project_name(allocation))
+        """
+        Create association between user and SLURM account if it does not exist yet.
+        """
+        account = self.get_allocation_name(allocation)
+        if not self.client.get_association(username, account):
+            self.client.create_association(username, account)
 
     def delete_user(self, allocation, username):
-        if self.client.get_association(username, self.get_project_name(allocation)):
-            self.client.delete_association(username, self.get_project_name(allocation))
+        """
+        Delete association between user and SLURM account if it exists.
+        """
+        account = self.get_allocation_name(allocation)
+        if self.client.get_association(username, account):
+            self.client.delete_association(username, account)
 
     def set_resource_limits(self, allocation):
         quotas = Quotas(allocation.cpu_limit, allocation.gpu_limit, allocation.ram_limit)
