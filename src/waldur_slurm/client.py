@@ -149,7 +149,7 @@ class SlurmClient(object):
             account = parts[1]
             user = parts[2]
             tres_name = parts[4]
-            usage = parts[5]
+            usage = int(parts[5])
             if not user:
                 if account not in accounts:
                     accounts[account] = Quotas(0, 0, 0)
