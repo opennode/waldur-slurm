@@ -12,8 +12,6 @@ from nodeconductor.core import utils as core_utils
 class SlurmError(Exception):
     pass
 
-User = collections.namedtuple('User', ['name', 'default_account', 'admin_level'])
-
 Account = collections.namedtuple('Account', ['name', 'description', 'organization'])
 
 Association = collections.namedtuple('Association', ['account', 'user', 'value'])
@@ -76,10 +74,6 @@ class SlurmClient(object):
         quota = 'GrpTRESMins=cpu=%d,gres/gpu=%d,mem=%d' % (quotas.cpu, quotas.gpu, quotas.ram)
         return self._execute_command(['modify', 'account', account, 'set', quota])
 
-    def list_associations(self):
-        output = self._execute_command(['list', 'association'])
-        return [self._parse_association(line) for line in output.splitlines() if '|' in line]
-
     def get_association(self, user, account):
         output = self._execute_command([
             'show', 'association', 'where', 'user=%s' % user, 'account=%s' % account
@@ -101,33 +95,15 @@ class SlurmClient(object):
             value=value,
         )
 
-    def create_association(self, username, account):
-        return self._execute_command(['add', 'user', username, 'account=%s' % account])
+    def create_association(self, username, account, default_account):
+        return self._execute_command(['add', 'user', username,
+                                      'account=%s' % account,
+                                      'DefaultAccount=%s' % default_account])
 
     def delete_association(self, username, account):
         return self._execute_command([
             'remove', 'user', 'where', 'name=%s' % username, 'and', 'account=%s' % account
         ])
-
-    def list_users(self):
-        output = self._execute_command(['list', 'user'])
-        return [self._parse_user(line) for line in output.splitlines() if '|' in line]
-
-    def _parse_user(self, line):
-        parts = line.split('|')
-        return User(
-            name=parts[0],
-            default_account=parts[1],
-            admin_level=parts[2],
-        )
-
-    def create_user(self, username, default_account):
-        return self._execute_command([
-            'add', 'user', 'name=%s' % username, 'DefaultAccount=%s' % default_account
-        ])
-
-    def delete_user(self, username):
-        return self._execute_command(['remove', 'user', username])
 
     def get_usage(self, accounts):
         today = timezone.now()
@@ -149,7 +125,7 @@ class SlurmClient(object):
             account = parts[1]
             user = parts[2]
             tres_name = parts[4]
-            usage = parts[5]
+            usage = int(parts[5])
             if not user:
                 if account not in accounts:
                     accounts[account] = Quotas(0, 0, 0)
@@ -173,7 +149,7 @@ class SlurmClient(object):
         ssh_command = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
                        server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
         try:
-            logging.debug('Executing SSH command: %s', ' '.join(ssh_command))
+            logger.debug('Executing SSH command: %s', ' '.join(ssh_command))
             return subprocess.check_output(ssh_command, stderr=subprocess.STDOUT)  # nosec
         except subprocess.CalledProcessError as e:
             logger.exception('Failed to execute command "%s".', ssh_command)

@@ -46,7 +46,7 @@ class SlurmAssociationSynchronizationTest(TestCase):
             tasks.add_user(self.serialized_profile)
             account = 'waldur_allocation_%s' % allocation.uuid.hex
             mock_client().create_association.assert_called_once_with(
-                self.freeipa_profile.username, account)
+                self.freeipa_profile.username, account, 'waldur_user')
 
     def test_when_project_manager_role_is_granted_profile_is_synchronized(self):
         with mock.patch('waldur_slurm.tasks.process_role_granted') as mock_task:
@@ -68,4 +68,4 @@ class SlurmAssociationSynchronizationTest(TestCase):
             tasks.add_user(self.serialized_profile)
             account = 'waldur_allocation_%s' % allocation.uuid.hex
             mock_client().create_association.assert_called_once_with(
-                self.freeipa_profile.username, account)
+                self.freeipa_profile.username, account, 'waldur_user')
