@@ -8,6 +8,7 @@ class SlurmExtension(NodeConductorExtension):
             'PROJECT_PREFIX': 'waldur_project_',
             'ALLOCATION_PREFIX': 'waldur_allocation_',
             'PRIVATE_KEY_PATH': '/etc/waldur/id_rsa',
+            'DEFAULT_USER_ACCOUNT': 'waldur_user',
         }
 
     @staticmethod

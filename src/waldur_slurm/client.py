@@ -101,8 +101,10 @@ class SlurmClient(object):
             value=value,
         )
 
-    def create_association(self, username, account):
-        return self._execute_command(['add', 'user', username, 'account=%s' % account])
+    def create_association(self, username, account, default_account):
+        return self._execute_command(['add', 'user', username,
+                                      'account=%s' % account,
+                                      'DefaultAccount=%s' % default_account])
 
     def delete_association(self, username, account):
         return self._execute_command([
