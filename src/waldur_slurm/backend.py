@@ -84,7 +84,7 @@ class SlurmBackend(ServiceBackend):
         Create association between user and SLURM account if it does not exist yet.
         """
         account = self.get_allocation_name(allocation)
-        default_account = django_settings.WALDUR_SLURM['DEFAULT_USER_ACCOUNT']
+        default_account = self.settings.options.get('default_account')
         if not self.client.get_association(username, account):
             self.client.create_association(username, account, default_account)
 
