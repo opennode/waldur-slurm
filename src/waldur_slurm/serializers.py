@@ -22,6 +22,7 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
         'port': '',
         'use_sudo': _('Set to true to activate privilege escalation'),
         'gateway': _('Hostname or IP address of gateway node'),
+        'default_account': _('Default SLURM account for user'),
     }
 
     class Meta(structure_serializers.BaseServiceSerializer.Meta):
@@ -33,6 +34,9 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
             },
             'use_sudo': {
                 'default_value': False,
+            },
+            'default_account': {
+                'required': True,
             },
         }
 
