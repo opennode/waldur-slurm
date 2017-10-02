@@ -17,6 +17,10 @@ class SlurmAssociationSynchronizationTest(TestCase):
         self.fixture = fixtures.SlurmFixture()
         self.user = structure_factories.UserFactory()
 
+        service_settings = self.fixture.service.settings
+        service_settings.options = {'default_account': 'waldur_user'}
+        service_settings.save()
+
         self.freeipa_profile = freeipa_models.Profile.objects.create(user=self.user, username='valid_username')
         self.serialized_profile = core_utils.serialize_instance(self.freeipa_profile)
 
