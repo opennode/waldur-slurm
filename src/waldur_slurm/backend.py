@@ -64,7 +64,7 @@ class SlurmBackend(ServiceBackend):
         for user in allocation.service_project_link.project.customer.get_users():
             username = freeipa_profiles.get(user)
             if username:
-                self.client.create_association(username.lower(), allocation_account)
+                self.add_user(allocation, username.lower())
 
     def delete_allocation(self, allocation):
         account = self.get_allocation_name(allocation)
