@@ -26,6 +26,7 @@ class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass
     filter_class = filters.AllocationFilter
 
     create_executor = executors.AllocationCreateExecutor
+    pull_executor = executors.AllocationPullExecutor
 
     destroy_permissions = [structure_permissions.is_staff]
     delete_executor = executors.AllocationDeleteExecutor

@@ -69,7 +69,6 @@ class SlurmBackend(ServiceBackend):
     def delete_allocation(self, allocation):
         account = self.get_allocation_name(allocation)
         if self.client.get_account(account):
-            self.client.delete_all_users_from_account(account)
             self.client.delete_account(account)
 
         project = allocation.service_project_link.project
@@ -121,10 +120,22 @@ class SlurmBackend(ServiceBackend):
             if not allocation:
                 logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
                 continue
-            allocation.cpu_usage = quotas.cpu
-            allocation.gpu_usage = quotas.gpu
-            allocation.ram_usage = quotas.ram
-            allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage'])
+            self._update_quotas(allocation, quotas)
+
+    def pull_allocation(self, allocation):
+        account = self.get_allocation_name(allocation)
+        usage = self.client.get_usage([account])
+        quotas = usage.get(account)
+        if not quotas:
+            logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
+            return
+        self._update_quotas(allocation, quotas)
+
+    def _update_quotas(self, allocation, quotas):
+        allocation.cpu_usage = quotas.cpu
+        allocation.gpu_usage = quotas.gpu
+        allocation.ram_usage = quotas.ram
+        allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage'])
 
     def create_customer(self, customer):
         customer_name = self.get_customer_name(customer)

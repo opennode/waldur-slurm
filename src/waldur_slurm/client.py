@@ -67,7 +67,17 @@ class SlurmClient(object):
     def delete_all_users_from_account(self, name):
         return self._execute_command(['remove', 'user', 'where', 'account=%s' % name])
 
+    def account_has_users(self, account):
+        output = self._execute_command([
+            'show', 'association', 'where', 'account=%s' % account
+        ])
+        items = [self._parse_association(line) for line in output.splitlines() if '|' in line]
+        return any(item.user != '' for item in items)
+
     def delete_account(self, name):
+        if self.account_has_users(name):
+            self.delete_all_users_from_account(name)
+
         return self._execute_command(['remove', 'account', 'where', 'name=%s' % name])
 
     def set_resource_limits(self, account, quotas):
