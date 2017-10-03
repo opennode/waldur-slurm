@@ -23,6 +23,16 @@ class AllocationUpdateExecutor(core_executors.UpdateExecutor):
         )
 
 
+class AllocationPullExecutor(core_executors.ActionExecutor):
+    action = 'Pull'
+
+    @classmethod
+    def get_task_signature(cls, volume, serialized_volume, **kwargs):
+        return core_tasks.BackendMethodTask().si(
+            serialized_volume, 'pull_allocation',
+            state_transition='begin_updating')
+
+
 class AllocationDeleteExecutor(core_executors.DeleteExecutor):
 
     @classmethod
