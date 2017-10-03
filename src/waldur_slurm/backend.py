@@ -69,7 +69,6 @@ class SlurmBackend(ServiceBackend):
     def delete_allocation(self, allocation):
         account = self.get_allocation_name(allocation)
         if self.client.get_account(account):
-            self.client.delete_all_users_from_account(account)
             self.client.delete_account(account)
 
         project = allocation.service_project_link.project
