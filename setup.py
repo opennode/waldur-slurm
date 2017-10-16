@@ -21,7 +21,7 @@ tests_requires = [
 
 setup(
     name='waldur-slurm',
-    version='0.2.5',
+    version='0.2.6',
     author='OpenNode Team',
     author_email='info@opennodecloud.com',
     url='http://waldur.com',
