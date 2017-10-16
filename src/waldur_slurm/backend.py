@@ -2,6 +2,8 @@ import logging
 import six
 
 from django.conf import settings as django_settings
+from django.db import transaction
+from django.utils import timezone
 
 from nodeconductor.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
@@ -114,28 +116,49 @@ class SlurmBackend(ServiceBackend):
             self.get_allocation_name(allocation): allocation
             for allocation in self.get_allocation_queryset()
         }
-        usage = self.client.get_usage(waldur_allocations.keys())
-        for account, quotas in usage.items():
+        report = self.client.get_usage_report(waldur_allocations.keys())
+        for account, usage in report.items():
             allocation = waldur_allocations.get(account)
             if not allocation:
                 logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
                 continue
-            self._update_quotas(allocation, quotas)
+            self._update_quotas(allocation, usage)
 
     def pull_allocation(self, allocation):
         account = self.get_allocation_name(allocation)
-        usage = self.client.get_usage([account])
-        quotas = usage.get(account)
-        if not quotas:
+        report = self.client.get_usage_report([account])
+        usage = report.get(account)
+        if not usage:
             logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
             return
-        self._update_quotas(allocation, quotas)
+        self._update_quotas(allocation, usage)
 
-    def _update_quotas(self, allocation, quotas):
+    @transaction.atomic()
+    def _update_quotas(self, allocation, usage):
+        quotas = usage.pop('TOTAL_ACCOUNT_USAGE')
         allocation.cpu_usage = quotas.cpu
         allocation.gpu_usage = quotas.gpu
         allocation.ram_usage = quotas.ram
         allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage'])
+
+        usernames = usage.keys()
+        usermap = {
+            profile.username: profile.user
+            for profile in freeipa_models.Profile.objects.filter(username__in=usernames)
+        }
+
+        for username, quotas in usage.items():
+            models.AllocationUsage.objects.update_or_create(
+                allocation=allocation,
+                username=username,
+                year=timezone.now().year,
+                month=timezone.now().month,
+                defaults={
+                    'cpu_usage': quotas.cpu,
+                    'gpu_usage': quotas.gpu,
+                    'ram_usage': quotas.ram,
+                    'user': usermap.get(username),
+                })
 
     def create_customer(self, customer):
         customer_name = self.get_customer_name(customer)
