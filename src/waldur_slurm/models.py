@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from model_utils import FieldTracker
@@ -58,3 +60,24 @@ class Allocation(structure_models.NewResource):
     @classmethod
     def get_backend_fields(cls):
         return super(Allocation, cls).get_backend_fields() + ('cpu_usage', 'gpu_usage', 'ram_usage')
+
+
+class AllocationUsage(models.Model):
+    class Permissions(object):
+        customer_path = 'allocation__service_project_link__project__customer'
+        project_path = 'allocation__service_project_link__project'
+        service_path = 'allocation__service_project_link__service'
+
+    class Meta(object):
+        ordering = ['allocation']
+
+    allocation = models.ForeignKey(Allocation)
+    username = models.CharField(max_length=32)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, blank=True, null=True)
+
+    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
+
+    cpu_usage = models.IntegerField(default=0)
+    ram_usage = models.IntegerField(default=0)
+    gpu_usage = models.IntegerField(default=0)

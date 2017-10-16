@@ -1,7 +1,9 @@
 import six
 
-from rest_framework import decorators, response, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import decorators, permissions, response, status, viewsets
 
+from nodeconductor.structure import filters as structure_filters
 from nodeconductor.structure import views as structure_views
 from nodeconductor.structure import permissions as structure_permissions
 
@@ -41,6 +43,15 @@ class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass
         return response.Response(status=status.HTTP_200_OK)
 
     cancel_permissions = [structure_permissions.is_owner]
+
+
+class AllocationUsageViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = models.AllocationUsage.objects.all()
+    serializer_class = serializers.AllocationUsageSerializer
+    lookup_field = 'uuid'
+    permission_classes = (permissions.IsAuthenticated,)
+    filter_backends = (structure_filters.GenericRoleFilter, DjangoFilterBackend)
+    filter_class = filters.AllocationUsageFilter
 
 
 def get_project_allocation_count(project):

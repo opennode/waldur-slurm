@@ -107,3 +107,20 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
                 _('You do not have permissions to create allocation for given project.')
             )
         return spl
+
+
+class AllocationUsageSerializer(rf_serializers.HyperlinkedModelSerializer):
+    class Meta(object):
+        model = models.AllocationUsage
+        fields = ('allocation', 'username', 'user', 'year', 'month',
+                  'cpu_usage', 'ram_usage', 'gpu_usage')
+        extra_kwargs = {
+            'allocation': {
+                'lookup_field': 'uuid',
+                'view_name': 'slurm-allocation-detail',
+            },
+            'user': {
+                'lookup_field': 'uuid',
+                'view_name': 'user-detail',
+            }
+        }
