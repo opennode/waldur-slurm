@@ -110,9 +110,12 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
 
 
 class AllocationUsageSerializer(rf_serializers.HyperlinkedModelSerializer):
+    full_name = rf_serializers.ReadOnlyField(source='user.full_name')
+
     class Meta(object):
         model = models.AllocationUsage
-        fields = ('allocation', 'username', 'user', 'year', 'month',
+        fields = ('allocation', 'year', 'month',
+                  'username', 'user', 'full_name',
                   'cpu_usage', 'ram_usage', 'gpu_usage')
         extra_kwargs = {
             'allocation': {
