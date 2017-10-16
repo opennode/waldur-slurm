@@ -115,7 +115,7 @@ class SlurmClient(object):
             'remove', 'user', 'where', 'name=%s' % username, 'and', 'account=%s' % account
         ])
 
-    def get_usage(self, accounts):
+    def get_usage_report(self, accounts):
         today = timezone.now()
         month_start = core_utils.month_start(today).strftime('%Y-%m-%d')
         month_end = core_utils.month_end(today).strftime('%Y-%m-%d')
@@ -136,15 +136,18 @@ class SlurmClient(object):
             user = parts[2]
             tres_name = parts[4]
             usage = int(parts[5])
+            if account not in accounts:
+                accounts[account] = {}
             if not user:
-                if account not in accounts:
-                    accounts[account] = Quotas(0, 0, 0)
-                if tres_name == 'cpu':
-                    accounts[account].cpu = usage
-                elif tres_name == 'gres/gpu':
-                    accounts[account].gpu = usage
-                elif tres_name == 'mem':
-                    accounts[account].ram = usage
+                user = 'TOTAL_ACCOUNT_USAGE'
+            if user not in accounts[account]:
+                accounts[account][user] = Quotas(0, 0, 0)
+            if tres_name == 'cpu':
+                accounts[account][user].cpu = usage
+            elif tres_name == 'gres/gpu':
+                accounts[account][user].gpu = usage
+            elif tres_name == 'mem':
+                accounts[account][user].ram = usage
         return accounts
 
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
