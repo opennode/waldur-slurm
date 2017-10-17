@@ -27,7 +27,7 @@ class SlurmBackend(ServiceBackend):
         )
 
     def sync(self):
-        pass
+        self.sync_usage()
 
     def ping(self, raise_exception=False):
         try:

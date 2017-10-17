@@ -61,9 +61,3 @@ def process_role_revoked(serialized_profile, serialized_structure):
 
     for allocation in allocations:
         allocation.get_backend().delete_user(allocation, profile.username)
-
-
-@shared_task(name='waldur_slurm.sync_usage')
-def sync_usage():
-    for settings in structure_models.ServiceSettings.objects.filter(type='SLURM'):
-        settings.get_backend().sync_usage()

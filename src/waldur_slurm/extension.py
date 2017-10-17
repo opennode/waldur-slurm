@@ -18,14 +18,3 @@ class SlurmExtension(NodeConductorExtension):
     def rest_urls():
         from .urls import register_in
         return register_in
-
-    @staticmethod
-    def celery_tasks():
-        from datetime import timedelta
-        return {
-            'waldur-slurm-sync-usage': {
-                'task': 'waldur_slurm.sync_usage',
-                'schedule': timedelta(minutes=10),
-                'args': (),
-            },
-        }
