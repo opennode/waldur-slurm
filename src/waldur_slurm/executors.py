@@ -1,4 +1,7 @@
 from nodeconductor.core import executors as core_executors, tasks as core_tasks
+from nodeconductor.structure import executors as structure_executors
+
+from . import models
 
 
 class AllocationCreateExecutor(core_executors.CreateExecutor):
@@ -42,3 +45,9 @@ class AllocationDeleteExecutor(core_executors.DeleteExecutor):
             'delete_allocation',
             state_transition='begin_deleting'
         )
+
+
+class SlurmCleanupExecutor(structure_executors.BaseCleanupExecutor):
+    executors = (
+        (models.Allocation, AllocationDeleteExecutor),
+    )
