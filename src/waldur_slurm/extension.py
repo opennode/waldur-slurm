@@ -18,3 +18,8 @@ class SlurmExtension(NodeConductorExtension):
     def rest_urls():
         from .urls import register_in
         return register_in
+
+    @staticmethod
+    def get_cleanup_executor():
+        from waldur_slurm.executors import SlurmCleanupExecutor
+        return SlurmCleanupExecutor
