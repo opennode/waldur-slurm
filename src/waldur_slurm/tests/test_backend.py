@@ -8,6 +8,11 @@ from waldur_freeipa import models as freeipa_models
 from .. import models
 from . import fixtures
 
+VALID_REPORT = """
+allocation1|cpu=1,mem=51200M,node=1,gres/gpu=1,gres/gpu:tesla=1|00:01:00|user1|
+allocation1|cpu=2,mem=51200M,node=2,gres/gpu=2,gres/gpu:tesla=1|00:02:00|user2|
+"""
+
 
 class BackendTest(TestCase):
     def setUp(self):
@@ -17,37 +22,20 @@ class BackendTest(TestCase):
 
     @mock.patch('subprocess.check_output')
     def test_usage_synchronization(self, check_output):
-        usage_report = """cluster|allocation1|||cpu|2052150|
-cluster|allocation1|||mem|6413716577|
-cluster|allocation1|||gres/gpu|2650|
-cluster|allocation2|||cpu|692886|
-cluster|allocation2|||mem|2193728333|
-cluster|allocation2|||gres/gpu|0|
-"""
-        check_output.return_value = usage_report.replace('allocation1', self.account)
+        check_output.return_value = VALID_REPORT.replace('allocation1', self.account)
 
         backend = self.allocation.get_backend()
         backend.sync_usage()
         self.allocation.refresh_from_db()
 
-        self.assertEqual(self.allocation.cpu_usage, 2052150)
-        self.assertEqual(self.allocation.gpu_usage, 2650)
-        self.assertEqual(self.allocation.ram_usage, 6413716577)
+        self.assertEqual(self.allocation.cpu_usage, 1 + 2 * 2 * 2)
+        self.assertEqual(self.allocation.gpu_usage, 1 + 2 * 2 * 2)
+        self.assertEqual(self.allocation.ram_usage, (1 + 2 * 2) * 51200 * 2**20)
 
     @freeze_time('2017-10-16 00:00:00')
     @mock.patch('subprocess.check_output')
     def test_usage_per_user(self, check_output):
-        usage_report = """cluster|allocation1|||cpu|2052150|
-        cluster|allocation1|||gres/gpu|2650|
-        cluster|allocation1|||mem|6413716577|
-        cluster|allocation1|user1||cpu|1026075|
-        cluster|allocation1|user1||gres/gpu|820860|
-        cluster|allocation1|user1||mem|6413000000|
-        cluster|allocation1|user2||cpu|1026075|
-        cluster|allocation1|user2||mem|716577|
-        cluster|allocation1|user2||gres/gpu|205215|
-        """
-        check_output.return_value = usage_report.replace('allocation1', self.account)
+        check_output.return_value = VALID_REPORT.replace('allocation1', self.account)
 
         user1 = self.fixture.manager
         user2 = self.fixture.admin
@@ -64,9 +52,9 @@ cluster|allocation2|||gres/gpu|0|
             year=2017,
             month=10,
         )
-        self.assertEqual(user1_allocation.cpu_usage, 1026075)
-        self.assertEqual(user1_allocation.gpu_usage, 820860)
-        self.assertEqual(user1_allocation.ram_usage, 6413000000)
+        self.assertEqual(user1_allocation.cpu_usage, 1)
+        self.assertEqual(user1_allocation.gpu_usage, 1)
+        self.assertEqual(user1_allocation.ram_usage, 51200 * 2**20)
 
     @mock.patch('subprocess.check_output')
     def test_set_resource_limits(self, check_output):
