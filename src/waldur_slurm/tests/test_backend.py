@@ -30,7 +30,7 @@ class BackendTest(TestCase):
 
         self.assertEqual(self.allocation.cpu_usage, 1 + 2 * 2 * 2)
         self.assertEqual(self.allocation.gpu_usage, 1 + 2 * 2 * 2)
-        self.assertEqual(self.allocation.ram_usage, (1 + 2 * 2) * 51200 * 10**6)
+        self.assertEqual(self.allocation.ram_usage, (1 + 2 * 2) * 51200 * 2**20)
 
     @freeze_time('2017-10-16 00:00:00')
     @mock.patch('subprocess.check_output')
@@ -54,7 +54,7 @@ class BackendTest(TestCase):
         )
         self.assertEqual(user1_allocation.cpu_usage, 1)
         self.assertEqual(user1_allocation.gpu_usage, 1)
-        self.assertEqual(user1_allocation.ram_usage, 51200 * 10**6)
+        self.assertEqual(user1_allocation.ram_usage, 51200 * 2**20)
 
     @mock.patch('subprocess.check_output')
     def test_set_resource_limits(self, check_output):
