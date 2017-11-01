@@ -9,10 +9,10 @@ from waldur_slurm.structures import Quotas
 SLURM_UNIT_PATTERN = re.compile('(\d+)([KMGTP]?)')
 
 SLURM_UNITS = {
-    'K': 10**3,
-    'M': 10**6,
-    'G': 10**9,
-    'T': 10**12,
+    'K': 2**10,
+    'M': 2**20,
+    'G': 2**30,
+    'T': 2**40,
 }
 
 
