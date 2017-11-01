@@ -9,8 +9,8 @@ from nodeconductor.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
 
 from . import models
-from .client import SlurmClient, SlurmError, Quotas
-
+from .client import SlurmClient, SlurmError
+from waldur_slurm.structures import Quotas
 
 logger = logging.getLogger(__name__)
 
