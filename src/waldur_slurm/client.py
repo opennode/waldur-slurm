@@ -1,27 +1,17 @@
-import collections
 import logging
 import re
-import six
 import subprocess  # nosec
+import six
 
 from django.utils import timezone
 
 from nodeconductor.core import utils as core_utils
+from waldur_slurm.parser import UsageReportParser
+from waldur_slurm.structures import Account, Association
 
 
 class SlurmError(Exception):
     pass
-
-Account = collections.namedtuple('Account', ['name', 'description', 'organization'])
-
-Association = collections.namedtuple('Association', ['account', 'user', 'value'])
-
-
-class Quotas(object):
-    def __init__(self, cpu, gpu, ram):
-        self.cpu = cpu
-        self.gpu = gpu
-        self.ram = ram
 
 
 logger = logging.getLogger(__name__)
@@ -120,35 +110,18 @@ class SlurmClient(object):
         month_start = core_utils.month_start(today).strftime('%Y-%m-%d')
         month_end = core_utils.month_end(today).strftime('%Y-%m-%d')
         args = [
-            'cluster', 'AccountUtilizationByUser',
-            '--tres="cpu,gres/gpu,mem"',
-            'Start=%s' % month_start,
-            'End=%s' % month_end,
-            'Accounts=%s' % ','.join(accounts),
+            '--noconvert',
+            '--truncate',
+            '--allocations',
+            '--allusers',
+            '--starttime=%s' % month_start,
+            '--endtime=%s' % month_end,
+            '--accounts=%s' % ','.join(accounts),
+            '--format=Account,ReqTRES,Elapsed,User',
         ]
-        output = self._execute_command(args, 'sreport', immediate=False)
-        accounts = {}
-        for line in output.splitlines():
-            if '|' not in line:
-                continue
-            parts = line.split('|')
-            account = parts[1]
-            user = parts[2]
-            tres_name = parts[4]
-            usage = int(parts[5])
-            if account not in accounts:
-                accounts[account] = {}
-            if not user:
-                user = 'TOTAL_ACCOUNT_USAGE'
-            if user not in accounts[account]:
-                accounts[account][user] = Quotas(0, 0, 0)
-            if tres_name == 'cpu':
-                accounts[account][user].cpu = usage
-            elif tres_name == 'gres/gpu':
-                accounts[account][user].gpu = usage
-            elif tres_name == 'mem':
-                accounts[account][user].ram = usage
-        return accounts
+        output = self._execute_command(args, 'sacct', immediate=False)
+        parser = UsageReportParser(output)
+        return parser.get_report()
 
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
         server = '%s@%s' % (self.username, self.hostname)
