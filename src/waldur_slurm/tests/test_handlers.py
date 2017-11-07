@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from django.test import TestCase
+from django.test import TransactionTestCase
 import mock
 
 from nodeconductor.core import utils as core_utils
@@ -12,7 +12,7 @@ from .. import tasks
 from . import fixtures
 
 
-class SlurmAssociationSynchronizationTest(TestCase):
+class SlurmAssociationSynchronizationTest(TransactionTestCase):
     def setUp(self):
         self.fixture = fixtures.SlurmFixture()
         self.user = structure_factories.UserFactory()

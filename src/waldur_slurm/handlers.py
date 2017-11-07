@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Sum
 
 from nodeconductor.core import utils as core_utils
@@ -9,11 +10,13 @@ from . import models, tasks, utils
 def process_user_creation(sender, instance, created=False, **kwargs):
     if not created:
         return
-    tasks.add_user.delay(core_utils.serialize_instance(instance))
+    transaction.on_commit(lambda:
+                          tasks.add_user.delay(core_utils.serialize_instance(instance)))
 
 
 def process_user_deletion(sender, instance, **kwargs):
-    tasks.delete_user.delay(core_utils.serialize_instance(instance))
+    transaction.on_commit(lambda:
+                          tasks.delete_user.delay(core_utils.serialize_instance(instance)))
 
 
 def process_role_granted(sender, structure, user, role, **kwargs):
@@ -21,7 +24,8 @@ def process_role_granted(sender, structure, user, role, **kwargs):
         freeipa_profile = freeipa_models.Profile.objects.get(user=user)
         serialized_profile = core_utils.serialize_instance(freeipa_profile)
         serialized_structure = core_utils.serialize_instance(structure)
-        tasks.process_role_granted.delay(serialized_profile, serialized_structure)
+        transaction.on_commit(lambda:
+                              tasks.process_role_granted.delay(serialized_profile, serialized_structure))
     except freeipa_models.Profile.DoesNotExist:
         pass
 
@@ -31,7 +35,8 @@ def process_role_revoked(sender, structure, user, role, **kwargs):
         freeipa_profile = freeipa_models.Profile.objects.get(user=user)
         serialized_profile = core_utils.serialize_instance(freeipa_profile)
         serialized_structure = core_utils.serialize_instance(structure)
-        tasks.process_role_revoked.delay(serialized_profile, serialized_structure)
+        transaction.on_commit(lambda:
+                              tasks.process_role_revoked.delay(serialized_profile, serialized_structure))
     except freeipa_models.Profile.DoesNotExist:
         pass
 
