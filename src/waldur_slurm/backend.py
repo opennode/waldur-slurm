@@ -5,7 +5,7 @@ from django.conf import settings as django_settings
 from django.db import transaction
 from django.utils import timezone
 
-from nodeconductor.structure import ServiceBackend, ServiceBackendError
+from waldur_core.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
 
 from . import models

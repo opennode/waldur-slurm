@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    'nodeconductor>0.148.3',
+    'waldur-core>0.148.3',
     'waldur-freeipa>=0.2.2',
 ]
 
@@ -36,7 +36,7 @@ setup(
     },
     zip_safe=False,
     entry_points={
-        'nodeconductor_extensions': (
+        'waldur_extensions': (
             'waldur_slurm = waldur_slurm.extension:SlurmExtension',
         ),
     },
