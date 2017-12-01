@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    'nodeconductor>0.148.3',
-    'waldur-freeipa>=0.2.2',
+    'waldur-core>=0.151.0',
+    'waldur-freeipa>=0.2.4',
 ]
 
 
@@ -21,7 +21,7 @@ tests_requires = [
 
 setup(
     name='waldur-slurm',
-    version='0.3.2',
+    version='0.3.3',
     author='OpenNode Team',
     author_email='info@opennodecloud.com',
     url='http://waldur.com',
@@ -36,7 +36,7 @@ setup(
     },
     zip_safe=False,
     entry_points={
-        'nodeconductor_extensions': (
+        'waldur_extensions': (
             'waldur_slurm = waldur_slurm.extension:SlurmExtension',
         ),
     },

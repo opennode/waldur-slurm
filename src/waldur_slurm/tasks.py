@@ -1,8 +1,8 @@
 import itertools
 from celery import shared_task
 
-from nodeconductor.core import utils as core_utils
-from nodeconductor.structure import models as structure_models
+from waldur_core.core import utils as core_utils
+from waldur_core.structure import models as structure_models
 from . import models
 
 

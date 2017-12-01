@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.db.models import Sum
 
-from nodeconductor.core import utils as core_utils
+from waldur_core.core import utils as core_utils
 from waldur_freeipa import models as freeipa_models
 
 from . import models, tasks, utils

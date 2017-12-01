@@ -10,10 +10,10 @@ class SlurmConfig(AppConfig):
     service_name = 'SLURM'
 
     def ready(self):
-        from nodeconductor.quotas.fields import QuotaField, CounterQuotaField
-        from nodeconductor.structure import SupportedServices
-        from nodeconductor.structure import models as structure_models
-        from nodeconductor.structure import signals as structure_signals
+        from waldur_core.quotas.fields import QuotaField, CounterQuotaField
+        from waldur_core.structure import SupportedServices
+        from waldur_core.structure import models as structure_models
+        from waldur_core.structure import signals as structure_signals
         from waldur_freeipa import models as freeipa_models
 
         from .backend import SlurmBackend

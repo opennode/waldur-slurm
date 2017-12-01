@@ -3,9 +3,9 @@ import six
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import decorators, permissions, response, status, viewsets
 
-from nodeconductor.structure import filters as structure_filters
-from nodeconductor.structure import views as structure_views
-from nodeconductor.structure import permissions as structure_permissions
+from waldur_core.structure import filters as structure_filters
+from waldur_core.structure import views as structure_views
+from waldur_core.structure import permissions as structure_permissions
 
 from . import executors, filters, models, serializers
 
