@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     'waldur-core>=0.151.0',
-    'waldur-freeipa>=0.2.2',
+    'waldur-freeipa>=0.2.4',
 ]
 
 
