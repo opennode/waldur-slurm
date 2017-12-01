@@ -7,7 +7,7 @@ License: MIT
 Url: http://waldur.com
 Source0: %{name}-%{version}.tar.gz
 
-Requires: waldur-core > 0.148.3
+Requires: waldur-core >= 0.151.0
 Requires: waldur-freeipa >= 0.2.2
 
 BuildArch: noarch
