@@ -3,9 +3,9 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers as rf_serializers
 from rest_framework import exceptions as rf_exceptions
 
-from nodeconductor.core import serializers as core_serializers
-from nodeconductor.structure import serializers as structure_serializers
-from nodeconductor.structure.permissions import _has_owner_access
+from waldur_core.core import serializers as core_serializers
+from waldur_core.structure import serializers as structure_serializers
+from waldur_core.structure.permissions import _has_owner_access
 from waldur_freeipa import models as freeipa_models
 
 from . import models

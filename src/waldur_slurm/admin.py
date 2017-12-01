@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
-from nodeconductor.structure import admin as structure_admin
+from waldur_core.structure import admin as structure_admin
 
 from .models import SlurmService, SlurmServiceProjectLink, Allocation
 

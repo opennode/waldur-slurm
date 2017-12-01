@@ -1,7 +1,7 @@
-from nodeconductor.core import NodeConductorExtension
+from waldur_core.core import WaldurExtension
 
 
-class SlurmExtension(NodeConductorExtension):
+class SlurmExtension(WaldurExtension):
     class Settings:
         WALDUR_SLURM = {
             'CUSTOMER_PREFIX': 'waldur_customer_',

@@ -3,9 +3,9 @@ from __future__ import unicode_literals
 from django.test import TransactionTestCase
 import mock
 
-from nodeconductor.core import utils as core_utils
-from nodeconductor.structure import models as structure_models
-from nodeconductor.structure.tests import factories as structure_factories
+from waldur_core.core import utils as core_utils
+from waldur_core.structure import models as structure_models
+from waldur_core.structure.tests import factories as structure_factories
 from waldur_freeipa import models as freeipa_models
 
 from .. import tasks

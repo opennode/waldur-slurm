@@ -5,7 +5,7 @@ import six
 
 from django.utils import timezone
 
-from nodeconductor.core import utils as core_utils
+from waldur_core.core import utils as core_utils
 from waldur_slurm.parser import UsageReportParser
 from waldur_slurm.structures import Account, Association
 
