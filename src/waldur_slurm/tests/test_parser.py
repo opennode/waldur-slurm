@@ -10,6 +10,10 @@ allocation1|cpu=1,mem=51200M,node=1,gres/gpu=1,gres/gpu:tesla=1|00:01:00|user1|
 allocation1|cpu=2,mem=51200M,node=2,gres/gpu=2,gres/gpu:tesla=1|00:02:00|user2|
 """
 
+REPORT_WITHOUT_GPU = """
+allocation1|cpu=1,mem=51200M,node=1|00:01:00|user1|
+allocation1|cpu=2,mem=51200M,node=2|00:02:00|user2|
+"""
 
 class ParserTest(TestCase):
     def setUp(self):
@@ -36,3 +40,9 @@ class ParserTest(TestCase):
         total = self.report[VALID_ALLOCATION]['TOTAL_ACCOUNT_USAGE']
         expected = (1 + 2 * 2) * 51200 * 2**20
         self.assertEqual(total.ram, expected)
+
+    def test_if_resource_is_omitted_default_value_is_zero(self):
+        parser = UsageReportParser(REPORT_WITHOUT_GPU)
+        report = parser.get_report()
+        total = report[VALID_ALLOCATION]['TOTAL_ACCOUNT_USAGE']
+        self.assertEqual(total.gpu, 0)
