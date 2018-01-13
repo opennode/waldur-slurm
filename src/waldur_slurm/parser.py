@@ -100,6 +100,8 @@ class UsageLineParser(object):
         return dict(pair.split('=') for pair in pairs)
 
     def parse_field(self, field):
+        if field not in self._resources:
+            return 0
         return parse_int(self._resources[field])
 
 
