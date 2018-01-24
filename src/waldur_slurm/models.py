@@ -41,14 +41,14 @@ class Allocation(structure_models.NewResource):
     is_active = models.BooleanField(default=True)
     tracker = FieldTracker()
 
-    cpu_limit = models.IntegerField(default=-1)
-    cpu_usage = models.IntegerField(default=0)
+    cpu_limit = models.BigIntegerField(default=-1)
+    cpu_usage = models.BigIntegerField(default=0)
 
-    gpu_limit = models.IntegerField(default=-1)
-    gpu_usage = models.IntegerField(default=0)
+    gpu_limit = models.BigIntegerField(default=-1)
+    gpu_usage = models.BigIntegerField(default=0)
 
-    ram_limit = models.IntegerField(default=-1)
-    ram_usage = models.IntegerField(default=0)
+    ram_limit = models.BigIntegerField(default=-1)
+    ram_usage = models.BigIntegerField(default=0)
 
     @classmethod
     def get_url_name(cls):
@@ -78,6 +78,6 @@ class AllocationUsage(models.Model):
     year = models.PositiveSmallIntegerField()
     month = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(12)])
 
-    cpu_usage = models.IntegerField(default=0)
-    ram_usage = models.IntegerField(default=0)
-    gpu_usage = models.IntegerField(default=0)
+    cpu_usage = models.BigIntegerField(default=0)
+    ram_usage = models.BigIntegerField(default=0)
+    gpu_usage = models.BigIntegerField(default=0)
