@@ -1,23 +1,24 @@
 import logging
 import re
 import subprocess  # nosec
-import six
 
+import six
 from django.utils import timezone
 
 from waldur_core.core import utils as core_utils
+from waldur_slurm.base import BatchError, BatchClient
 from waldur_slurm.parser import UsageReportParser
 from waldur_slurm.structures import Account, Association
 
 
-class SlurmError(Exception):
+class SlurmError(BatchError):
     pass
 
 
 logger = logging.getLogger(__name__)
 
 
-class SlurmClient(object):
+class SlurmClient(BatchClient):
     def __init__(self, hostname, key_path, username='root', port=22, use_sudo=False):
         self.hostname = hostname
         self.key_path = key_path
@@ -139,4 +140,4 @@ class SlurmClient(object):
             return subprocess.check_output(ssh_command, stderr=subprocess.STDOUT)  # nosec
         except subprocess.CalledProcessError as e:
             logger.exception('Failed to execute command "%s".', ssh_command)
-            six.reraise(SlurmError, e.output)
+            six.reraise(BatchError, e.output)
