@@ -45,7 +45,7 @@ class SlurmAssociationSynchronizationTest(TransactionTestCase):
         allocation = self.fixture.allocation
         self.customer.add_user(self.user, structure_models.CustomerRole.OWNER)
 
-        with mock.patch('waldur_slurm.models.SlurmClient') as mock_client:
+        with mock.patch('waldur_slurm.backend.SlurmClient') as mock_client:
             mock_client().get_association.return_value = False
             tasks.add_user(self.serialized_profile)
             account = 'waldur_allocation_%s' % allocation.uuid.hex
@@ -67,7 +67,7 @@ class SlurmAssociationSynchronizationTest(TransactionTestCase):
         allocation = self.fixture.allocation
         self.project.add_user(self.user, structure_models.ProjectRole.MANAGER)
 
-        with mock.patch('waldur_slurm.models.SlurmClient') as mock_client:
+        with mock.patch('waldur_slurm.backend.SlurmClient') as mock_client:
             mock_client().get_association.return_value = False
             tasks.add_user(self.serialized_profile)
             account = 'waldur_allocation_%s' % allocation.uuid.hex

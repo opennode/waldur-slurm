@@ -92,7 +92,8 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer,
             'is_active',
         )
         read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + (
-            'cpu_usage', 'gpu_usage', 'ram_usage', 'deposit_usage', 'is_active'
+            'cpu_usage', 'gpu_usage', 'ram_usage', 'is_active',
+            'deposit_limit', 'deposit_usage',
         )
         extra_kwargs = dict(
             url={'lookup_field': 'uuid', 'view_name': 'slurm-allocation-detail'},
@@ -119,7 +120,7 @@ class AllocationUsageSerializer(rf_serializers.HyperlinkedModelSerializer):
         model = models.AllocationUsage
         fields = ('allocation', 'year', 'month',
                   'username', 'user', 'full_name',
-                  'cpu_usage', 'ram_usage', 'gpu_usage')
+                  'cpu_usage', 'ram_usage', 'gpu_usage', 'deposit_usage')
         extra_kwargs = {
             'allocation': {
                 'lookup_field': 'uuid',

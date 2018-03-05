@@ -1,10 +1,16 @@
 import logging
+import operator
 
-import six
 from django.conf import settings as django_settings
+from django.db import transaction
+from django.utils import timezone
+import six
 
 from waldur_core.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
+from waldur_slurm.client import SlurmClient
+from waldur_slurm.client_moab import MoabClient
+from waldur_slurm.structures import Quotas
 
 from . import models, base
 
@@ -14,14 +20,19 @@ logger = logging.getLogger(__name__)
 class SlurmBackend(ServiceBackend):
     def __init__(self, settings):
         self.settings = settings
-        self.provider = models.SlurmService.get_provider(settings)
-        self.client_class = self.provider.get_client_class()
-        self.client = self.client_class(
-            hostname=self.settings.options.get('hostname', 'localhost'),
-            username=self.settings.username or 'root',
-            port=self.settings.options.get('port', 22),
+        self.client = self.get_client(settings)
+
+    def get_client(self, settings):
+        batch_service = models.get_batch_service(settings)
+        cls = SlurmClient
+        if batch_service == 'MOAB':
+            cls = MoabClient
+        return cls(
+            hostname=settings.options.get('hostname', 'localhost'),
+            username=settings.username or 'root',
+            port=settings.options.get('port', 22),
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
-            use_sudo=self.settings.options.get('use_sudo', False),
+            use_sudo=settings.options.get('use_sudo', False),
         )
 
     def sync(self):
@@ -96,7 +107,13 @@ class SlurmBackend(ServiceBackend):
             self.client.delete_association(username, account)
 
     def set_resource_limits(self, allocation):
-        quotas = self.provider.get_quotas(allocation)
+        quotas = Quotas(
+            cpu=allocation.cpu_limit,
+            gpu=allocation.gpu_limit,
+            ram=allocation.ram_limit,
+            deposit=allocation.deposit_limit,
+        )
+
         self.client.set_resource_limits(self.get_allocation_name(allocation), quotas)
 
     def cancel_allocation(self, allocation):
@@ -116,22 +133,66 @@ class SlurmBackend(ServiceBackend):
             for allocation in self.get_allocation_queryset()
         }
 
-        report = self.client.get_usage_report(waldur_allocations.keys())
+        report = self.get_usage_report(waldur_allocations.keys())
         for account, usage in report.items():
             allocation = waldur_allocations.get(account)
             if not allocation:
                 logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
                 continue
-            self.provider.update_allocation_usage(allocation, usage)
+            self._update_quotas(allocation, usage)
 
     def pull_allocation(self, allocation):
         account = self.get_allocation_name(allocation)
-        report = self.client.get_usage_report([account])
+        report = self.get_usage_report([account])
         usage = report.get(account)
         if not usage:
             logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
             return
-        self.provider.update_allocation_usage(allocation, usage)
+        self._update_quotas(allocation, usage)
+
+    def get_usage_report(self, accounts):
+        report = {}
+        lines = self.client.get_usage_report(accounts)
+
+        for line in lines:
+            report.setdefault(line.account, {}).setdefault(line.user, Quotas())
+            report[line.account][line.user] += line.quotas
+
+        for usage in report.values():
+            quotas = usage.values()
+            total = reduce(operator.add, quotas)
+            usage['TOTAL_ACCOUNT_USAGE'] = total
+
+        return report
+
+    @transaction.atomic()
+    def _update_quotas(self, allocation, usage):
+        quotas = usage.pop('TOTAL_ACCOUNT_USAGE')
+        allocation.cpu_usage = quotas.cpu
+        allocation.gpu_usage = quotas.gpu
+        allocation.ram_usage = quotas.ram
+        allocation.deposit_usage = quotas.deposit
+        allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage', 'deposit_usage'])
+
+        usernames = usage.keys()
+        usermap = {
+            profile.username: profile.user
+            for profile in freeipa_models.Profile.objects.filter(username__in=usernames)
+        }
+
+        for username, quotas in usage.items():
+            models.AllocationUsage.objects.update_or_create(
+                allocation=allocation,
+                username=username,
+                year=timezone.now().year,
+                month=timezone.now().month,
+                defaults={
+                    'cpu_usage': quotas.cpu,
+                    'gpu_usage': quotas.gpu,
+                    'ram_usage': quotas.ram,
+                    'deposit_usage': quotas.deposit,
+                    'user': usermap.get(username),
+                })
 
     def create_customer(self, customer):
         customer_name = self.get_customer_name(customer)

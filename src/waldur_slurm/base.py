@@ -1,9 +1,14 @@
 from __future__ import absolute_import
 
+import abc
 import logging
-from abc import ABCMeta, abstractmethod
+import subprocess  # nosec
 
+from django.utils.functional import cached_property
 import six
+
+from .structures import Quotas
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,18 +17,25 @@ class BatchError(Exception):
     pass
 
 
-@six.add_metaclass(ABCMeta)
-class BatchClient:
+@six.add_metaclass(abc.ABCMeta)
+class BaseBatchClient(object):
 
-    @abstractmethod
+    def __init__(self, hostname, key_path, username='root', port=22, use_sudo=False):
+        self.hostname = hostname
+        self.key_path = key_path
+        self.username = username
+        self.port = port
+        self.use_sudo = use_sudo
+
+    @abc.abstractmethod
     def list_accounts(self):
         """
-        Get account list.
-        :return: [list] account list
+        Get accounts list.
+        :return: list[structures.Account object]
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_account(self, name):
         """
         Get account info.
@@ -32,7 +44,7 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def create_account(self, name, description, organization, parent_name=None):
         """
         Create account.
@@ -44,7 +56,7 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def delete_account(self, name):
         """
         Delete account.
@@ -53,7 +65,7 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def set_resource_limits(self, account, quotas):
         """
         Set account limits.
@@ -63,7 +75,7 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_association(self, user, account):
         """
         Get association user and account.
@@ -73,7 +85,7 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def create_association(self, username, account, default_account=None):
         """
         Create association user and account
@@ -84,7 +96,7 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def delete_association(self, username, account):
         """
         Delete_association user and account.
@@ -94,65 +106,73 @@ class BatchClient:
         """
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def get_usage_report(self, accounts):
         """
         Get usages records.
-        :param accounts: [string] account name
-        :return: [dict]
+        :param accounts: list[string]
+        :return: list[BaseReportLine]
         """
         raise NotImplementedError()
 
+    def execute_command(self, command):
+        server = '%s@%s' % (self.username, self.hostname)
+        port = str(self.port)
+        if self.use_sudo:
+            account_command = ['sudo']
+        else:
+            account_command = []
 
-@six.add_metaclass(ABCMeta)
-class BatchProvider:
-    @staticmethod
-    @abstractmethod
-    def get_client_class():
-        """
-        Get BatchClient interface implementation.
-        :return: [BatchClient class]
-        """
-        raise NotImplementedError()
+        account_command.extend(command)
+        ssh_command = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
+                       server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
+        try:
+            logger.debug('Executing SSH command: %s', ' '.join(ssh_command))
+            return subprocess.check_output(ssh_command, stderr=subprocess.PIPE)  # nosec
+        except subprocess.CalledProcessError as e:
+            logger.exception('Failed to execute command "%s".', ssh_command)
+            six.reraise(BatchError, e.output)
 
-    @staticmethod
-    @abstractmethod
-    def get_price(allocation, package):
-        """
-        Get allocation price.
-        :param allocation: [Allocation object]
-        :param package: [Package object]
-        :return: [number]
-        """
-        raise NotImplementedError()
 
-    @staticmethod
-    @abstractmethod
-    def get_details(allocation):
-        """
-        Get usages info.
-        :param allocation: [Allocation object]
-        :return: [dict]
-        """
-        raise NotImplementedError()
+@six.add_metaclass(abc.ABCMeta)
+class BaseReportLine(object):
+    @abc.abstractproperty
+    def account(self):
+        pass
 
-    @staticmethod
-    @abstractmethod
-    def get_quotas(allocation):
-        """
-        Get allocation quotas.
-        :param allocation: [Allocation object]
-        :return: [structures.Quotas object]
-        """
-        raise NotImplementedError()
+    @abc.abstractproperty
+    def user(self):
+        pass
 
-    @staticmethod
-    @abstractmethod
-    def update_allocation_usage(allocation, usage):
-        """
-        Update allocation usage.
-        :param allocation: [Allocation object]
-        :param usage: [dict].
-        :return: None
-        """
-        raise NotImplementedError()
+    @property
+    def cpu(self):
+        return 0
+
+    @property
+    def gpu(self):
+        return 0
+
+    @property
+    def ram(self):
+        return 0
+
+    @property
+    def duration(self):
+        return 0
+
+    @property
+    def charge(self):
+        return 0
+
+    @property
+    def node(self):
+        return 0
+
+    @cached_property
+    def quotas(self):
+        return Quotas(
+            self.cpu * self.duration * self.node,
+            self.gpu * self.duration * self.node,
+            self.ram * self.duration * self.node,
+            self.charge
+        )

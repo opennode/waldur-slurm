@@ -53,6 +53,7 @@ class AllocationFactory(factory.DjangoModelFactory):
     cpu_limit = fuzzy.FuzzyInteger(1000, 8000, step=100)
     gpu_limit = fuzzy.FuzzyInteger(1000, 8000, step=100)
     ram_limit = fuzzy.FuzzyInteger(100, 1000, step=100)
+    deposit_limit = fuzzy.FuzzyInteger(100, 1000, step=100)
 
     @classmethod
     def get_url(cls, allocation=None, action=None):
@@ -79,6 +80,7 @@ class AllocationUsageFactory(factory.DjangoModelFactory):
     cpu_usage = fuzzy.FuzzyInteger(1000, 8000, step=100)
     gpu_usage = fuzzy.FuzzyInteger(1000, 8000, step=100)
     ram_usage = fuzzy.FuzzyInteger(100, 1000, step=100)
+    deposit_usage = fuzzy.FuzzyInteger(100, 1000, step=100)
 
     @classmethod
     def get_url(cls, allocation_usage=None):
