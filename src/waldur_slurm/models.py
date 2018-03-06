@@ -5,8 +5,14 @@ from django.utils.translation import ugettext_lazy as _
 from model_utils import FieldTracker
 
 from waldur_core.structure import models as structure_models
+from waldur_slurm import utils
 
-from . import utils
+
+def get_batch_service(service_settings):
+    batch_service = service_settings.options.get('batch_service')
+    if batch_service not in ('SLURM', 'MOAB'):
+        batch_service = 'SLURM'
+    return batch_service
 
 
 class SlurmService(structure_models.Service):
@@ -21,6 +27,10 @@ class SlurmService(structure_models.Service):
     @classmethod
     def get_url_name(cls):
         return 'slurm'
+
+    @property
+    def batch_service(self):
+        return get_batch_service(self.settings)
 
 
 class SlurmServiceProjectLink(structure_models.ServiceProjectLink):
@@ -50,6 +60,9 @@ class Allocation(structure_models.NewResource):
     ram_limit = models.BigIntegerField(default=-1)
     ram_usage = models.BigIntegerField(default=0)
 
+    deposit_limit = models.DecimalField(max_digits=6, decimal_places=0, default=-1)
+    deposit_usage = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+
     @classmethod
     def get_url_name(cls):
         return 'slurm-allocation'
@@ -59,7 +72,13 @@ class Allocation(structure_models.NewResource):
 
     @classmethod
     def get_backend_fields(cls):
-        return super(Allocation, cls).get_backend_fields() + ('cpu_usage', 'gpu_usage', 'ram_usage')
+        return super(Allocation, cls).get_backend_fields() + (
+            'cpu_usage', 'gpu_usage', 'ram_usage', 'deposit_usage'
+        )
+
+    @property
+    def batch_service(self):
+        return self.service_project_link.service.batch_service
 
 
 class AllocationUsage(models.Model):
@@ -81,3 +100,4 @@ class AllocationUsage(models.Model):
     cpu_usage = models.BigIntegerField(default=0)
     ram_usage = models.BigIntegerField(default=0)
     gpu_usage = models.BigIntegerField(default=0)
+    deposit_usage = models.DecimalField(max_digits=8, decimal_places=2, default=0)

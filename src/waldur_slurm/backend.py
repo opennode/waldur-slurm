@@ -1,16 +1,18 @@
 import logging
-import six
+import operator
 
 from django.conf import settings as django_settings
 from django.db import transaction
 from django.utils import timezone
+import six
 
 from waldur_core.structure import ServiceBackend, ServiceBackendError
 from waldur_freeipa import models as freeipa_models
-
-from . import models
-from .client import SlurmClient, SlurmError
+from waldur_slurm.client import SlurmClient
+from waldur_slurm.client_moab import MoabClient
 from waldur_slurm.structures import Quotas
+
+from . import models, base
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +20,19 @@ logger = logging.getLogger(__name__)
 class SlurmBackend(ServiceBackend):
     def __init__(self, settings):
         self.settings = settings
-        self.client = SlurmClient(
-            hostname=self.settings.options.get('hostname', 'localhost'),
-            username=self.settings.username or 'root',
-            port=self.settings.options.get('port', 22),
+        self.client = self.get_client(settings)
+
+    def get_client(self, settings):
+        batch_service = models.get_batch_service(settings)
+        cls = SlurmClient
+        if batch_service == 'MOAB':
+            cls = MoabClient
+        return cls(
+            hostname=settings.options.get('hostname', 'localhost'),
+            username=settings.username or 'root',
+            port=settings.options.get('port', 22),
             key_path=django_settings.WALDUR_SLURM['PRIVATE_KEY_PATH'],
-            use_sudo=self.settings.options.get('use_sudo', False),
+            use_sudo=settings.options.get('use_sudo', False),
         )
 
     def sync(self):
@@ -32,7 +41,7 @@ class SlurmBackend(ServiceBackend):
     def ping(self, raise_exception=False):
         try:
             self.client.list_accounts()
-        except SlurmError as e:
+        except base.BatchError as e:
             if raise_exception:
                 six.reraise(ServiceBackendError, e)
             return False
@@ -98,13 +107,20 @@ class SlurmBackend(ServiceBackend):
             self.client.delete_association(username, account)
 
     def set_resource_limits(self, allocation):
-        quotas = Quotas(allocation.cpu_limit, allocation.gpu_limit, allocation.ram_limit)
+        quotas = Quotas(
+            cpu=allocation.cpu_limit,
+            gpu=allocation.gpu_limit,
+            ram=allocation.ram_limit,
+            deposit=allocation.deposit_limit,
+        )
+
         self.client.set_resource_limits(self.get_allocation_name(allocation), quotas)
 
     def cancel_allocation(self, allocation):
         allocation.cpu_limit = allocation.cpu_usage
         allocation.gpu_limit = allocation.gpu_usage
         allocation.ram_limit = allocation.ram_usage
+        allocation.deposit_limit = allocation.deposit_usage
 
         self.set_resource_limits(allocation)
 
@@ -116,7 +132,8 @@ class SlurmBackend(ServiceBackend):
             self.get_allocation_name(allocation): allocation
             for allocation in self.get_allocation_queryset()
         }
-        report = self.client.get_usage_report(waldur_allocations.keys())
+
+        report = self.get_usage_report(waldur_allocations.keys())
         for account, usage in report.items():
             allocation = waldur_allocations.get(account)
             if not allocation:
@@ -126,12 +143,27 @@ class SlurmBackend(ServiceBackend):
 
     def pull_allocation(self, allocation):
         account = self.get_allocation_name(allocation)
-        report = self.client.get_usage_report([account])
+        report = self.get_usage_report([account])
         usage = report.get(account)
         if not usage:
             logger.debug('Skipping usage report for account %s because it is not managed under Waldur', account)
             return
         self._update_quotas(allocation, usage)
+
+    def get_usage_report(self, accounts):
+        report = {}
+        lines = self.client.get_usage_report(accounts)
+
+        for line in lines:
+            report.setdefault(line.account, {}).setdefault(line.user, Quotas())
+            report[line.account][line.user] += line.quotas
+
+        for usage in report.values():
+            quotas = usage.values()
+            total = reduce(operator.add, quotas)
+            usage['TOTAL_ACCOUNT_USAGE'] = total
+
+        return report
 
     @transaction.atomic()
     def _update_quotas(self, allocation, usage):
@@ -139,7 +171,8 @@ class SlurmBackend(ServiceBackend):
         allocation.cpu_usage = quotas.cpu
         allocation.gpu_usage = quotas.gpu
         allocation.ram_usage = quotas.ram
-        allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage'])
+        allocation.deposit_usage = quotas.deposit
+        allocation.save(update_fields=['cpu_usage', 'gpu_usage', 'ram_usage', 'deposit_usage'])
 
         usernames = usage.keys()
         usermap = {
@@ -157,6 +190,7 @@ class SlurmBackend(ServiceBackend):
                     'cpu_usage': quotas.cpu,
                     'gpu_usage': quotas.gpu,
                     'ram_usage': quotas.ram,
+                    'deposit_usage': quotas.deposit,
                     'user': usermap.get(username),
                 })
 

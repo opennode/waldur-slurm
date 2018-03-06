@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import decimal
+
 from django.test import TestCase
 import mock
 from freezegun import freeze_time
@@ -73,3 +75,38 @@ class BackendTest(TestCase):
         backend.set_resource_limits(self.allocation)
 
         check_output.assert_called_once_with(command, stderr=mock.ANY)
+
+
+class BackendMOABTest(TestCase):
+    def setUp(self):
+        self.fixture = fixtures.SlurmFixture()
+        self.fixture.service.settings.options = {'batch_service': 'MOAB'}
+        self.fixture.allocation.deposit_usage = 0
+
+        self.subprocess_patcher = mock.patch('subprocess.check_output')
+        self.subprocess_mock = self.subprocess_patcher.start()
+        self.subprocess_mock.return_value = """
+            test_acc|4|||21|centos|0.00|1
+            test_acc|4|6|12|20|centos|0.00|1
+            test_acc|4|||100|centos|0.03|1
+            test_acc|4|||100|centos|0.03|1
+            test_acc|4|||500|centos|0.17|1
+            test_acc|4|||2|centos|0.00|1
+        """.replace('test_acc', 'waldur_allocation_' + self.fixture.allocation.uuid.hex)
+
+    def tearDown(self):
+        mock.patch.stopall()
+
+    def test_allocation_synchronization(self):
+        backend = self.fixture.service.settings.get_backend()
+        backend.sync()
+        self.fixture.allocation.refresh_from_db()
+        self.assertEqual(self.fixture.allocation.deposit_usage, decimal.Decimal('0.23'))
+
+    def test_allocation_usage_synchronization(self):
+        backend = self.fixture.service.settings.get_backend()
+        backend.sync()
+        usage = models.AllocationUsage.objects.get(allocation=self.fixture.allocation)
+        self.assertEqual(usage.cpu_usage, 64)
+        self.assertEqual(usage.gpu_usage, 6)
+        self.assertEqual(usage.ram_usage, 12)

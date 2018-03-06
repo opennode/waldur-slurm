@@ -1,10 +1,9 @@
 import datetime
-import operator
 import re
 
 from django.utils.functional import cached_property
 
-from waldur_slurm.structures import Quotas
+from .base import BaseReportLine
 
 SLURM_UNIT_PATTERN = re.compile('(\d+)([KMGTP]?)')
 
@@ -42,37 +41,17 @@ def parse_duration(value):
     return int(delta.total_seconds()) // 60
 
 
-class UsageLineParser(object):
+class SlurmReportLine(BaseReportLine):
     def __init__(self, line):
         self._parts = line.split('|')
 
-    # Public part
-
     @cached_property
     def account(self):
-        return self._parts[0]
+        return self._parts[0].strip()
 
     @cached_property
     def user(self):
         return self._parts[3]
-
-    @cached_property
-    def quotas(self):
-        return Quotas(self.cpu_norm, self.gpu_norm, self.ram_norm)
-
-    # Private part
-
-    @cached_property
-    def cpu_norm(self):
-        return self.cpu * self.elapsed * self.node
-
-    @cached_property
-    def gpu_norm(self):
-        return self.gpu * self.elapsed * self.node
-
-    @cached_property
-    def ram_norm(self):
-        return self.ram * self.elapsed * self.node
 
     @cached_property
     def cpu(self):
@@ -91,7 +70,7 @@ class UsageLineParser(object):
         return self.parse_field('node')
 
     @cached_property
-    def elapsed(self):
+    def duration(self):
         return parse_duration(self._parts[2])
 
     @cached_property
@@ -103,35 +82,3 @@ class UsageLineParser(object):
         if field not in self._resources:
             return 0
         return parse_int(self._resources[field])
-
-
-class UsageReportParser(object):
-    def __init__(self, data):
-        self.lines = [line for line in data.splitlines() if '|' in line]
-        self.report = {}
-
-    # Public part
-
-    def get_report(self):
-        for line in self.lines:
-            self.add_line(UsageLineParser(line))
-
-        self.calculate_total_usage()
-
-        return self.report
-
-    # Private part
-
-    def add_line(self, report_line):
-        account = report_line.account
-        user = report_line.user
-        quotas = report_line.quotas
-
-        self.report.setdefault(account, {}).setdefault(user, Quotas(0, 0, 0))
-        self.report[account][user] += quotas
-
-    def calculate_total_usage(self):
-        for usage in self.report.values():
-            quotas = usage.values()
-            total = reduce(operator.add, quotas)
-            usage['TOTAL_ACCOUNT_USAGE'] = total

@@ -23,11 +23,12 @@ class ServiceSerializer(core_serializers.ExtraFieldOptionsMixin,
         'use_sudo': _('Set to true to activate privilege escalation'),
         'gateway': _('Hostname or IP address of gateway node'),
         'default_account': _('Default SLURM account for user'),
+        'batch_service': _('Batch service, SLURM or MOAB')
     }
 
     class Meta(structure_serializers.BaseServiceSerializer.Meta):
         model = models.SlurmService
-        required_fields = ('hostname', 'username')
+        required_fields = ('hostname', 'username', 'batch_service')
         extra_field_options = {
             'username': {
                 'default_value': 'root',
@@ -49,7 +50,8 @@ class ServiceProjectLinkSerializer(structure_serializers.BaseServiceProjectLinkS
         }
 
 
-class AllocationSerializer(structure_serializers.BaseResourceSerializer):
+class AllocationSerializer(structure_serializers.BaseResourceSerializer,
+                           core_serializers.AugmentedSerializerMixin):
     service = rf_serializers.HyperlinkedRelatedField(
         source='service_project_link.service',
         view_name='slurm-detail',
@@ -85,11 +87,13 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer):
             'cpu_limit', 'cpu_usage',
             'gpu_limit', 'gpu_usage',
             'ram_limit', 'ram_usage',
+            'deposit_limit', 'deposit_usage',
             'username', 'gateway',
             'is_active',
         )
         read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + (
-            'cpu_usage', 'gpu_usage', 'ram_usage', 'is_active'
+            'cpu_usage', 'gpu_usage', 'ram_usage', 'is_active',
+            'deposit_limit', 'deposit_usage',
         )
         extra_kwargs = dict(
             url={'lookup_field': 'uuid', 'view_name': 'slurm-allocation-detail'},
@@ -116,7 +120,7 @@ class AllocationUsageSerializer(rf_serializers.HyperlinkedModelSerializer):
         model = models.AllocationUsage
         fields = ('allocation', 'year', 'month',
                   'username', 'user', 'full_name',
-                  'cpu_usage', 'ram_usage', 'gpu_usage')
+                  'cpu_usage', 'ram_usage', 'gpu_usage', 'deposit_usage')
         extra_kwargs = {
             'allocation': {
                 'lookup_field': 'uuid',
