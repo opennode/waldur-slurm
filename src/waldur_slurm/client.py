@@ -1,29 +1,24 @@
 import logging
 import re
-import subprocess  # nosec
-import six
 
-from django.utils import timezone
-
-from waldur_core.core import utils as core_utils
-from waldur_slurm.parser import UsageReportParser
+from waldur_slurm.base import BatchError, BaseBatchClient
+from waldur_slurm.parser import SlurmReportLine
 from waldur_slurm.structures import Account, Association
+from waldur_slurm.utils import format_current_month
 
 
-class SlurmError(Exception):
+class SlurmError(BatchError):
     pass
 
 
 logger = logging.getLogger(__name__)
 
 
-class SlurmClient(object):
-    def __init__(self, hostname, key_path, username='root', port=22, use_sudo=False):
-        self.hostname = hostname
-        self.key_path = key_path
-        self.username = username
-        self.port = port
-        self.use_sudo = use_sudo
+class SlurmClient(BaseBatchClient):
+    """
+    This class implements Python client for SLURM.
+    See also: https://slurm.schedmd.com/sacctmgr.html
+    """
 
     def list_accounts(self):
         output = self._execute_command(['list', 'account'])
@@ -95,7 +90,7 @@ class SlurmClient(object):
             value=value,
         )
 
-    def create_association(self, username, account, default_account):
+    def create_association(self, username, account, default_account=''):
         return self._execute_command(['add', 'user', username,
                                       'account=%s' % account,
                                       'DefaultAccount=%s' % default_account])
@@ -106,9 +101,8 @@ class SlurmClient(object):
         ])
 
     def get_usage_report(self, accounts):
-        today = timezone.now()
-        month_start = core_utils.month_start(today).strftime('%Y-%m-%d')
-        month_end = core_utils.month_end(today).strftime('%Y-%m-%d')
+        month_start, month_end = format_current_month()
+
         args = [
             '--noconvert',
             '--truncate',
@@ -120,23 +114,11 @@ class SlurmClient(object):
             '--format=Account,ReqTRES,Elapsed,User',
         ]
         output = self._execute_command(args, 'sacct', immediate=False)
-        parser = UsageReportParser(output)
-        return parser.get_report()
+        return [SlurmReportLine(line) for line in output.splitlines() if '|' in line]
 
     def _execute_command(self, command, command_name='sacctmgr', immediate=True):
-        server = '%s@%s' % (self.username, self.hostname)
-        port = str(self.port)
         account_command = [command_name, '--parsable2', '--noheader']
-        if self.use_sudo:
-            account_command.insert(0, 'sudo')
         if immediate:
             account_command.append('--immediate')
         account_command.extend(command)
-        ssh_command = ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
-                       server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
-        try:
-            logger.debug('Executing SSH command: %s', ' '.join(ssh_command))
-            return subprocess.check_output(ssh_command, stderr=subprocess.STDOUT)  # nosec
-        except subprocess.CalledProcessError as e:
-            logger.exception('Failed to execute command "%s".', ssh_command)
-            six.reraise(SlurmError, e.output)
+        return self.execute_command(account_command)
