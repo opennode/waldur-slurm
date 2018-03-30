@@ -128,10 +128,15 @@ class BaseBatchClient(object):
                        server, '-p', port, '-i', self.key_path, ' '.join(account_command)]
         try:
             logger.debug('Executing SSH command: %s', ' '.join(ssh_command))
-            return subprocess.check_output(ssh_command, stderr=subprocess.PIPE)  # nosec
+            return subprocess.check_output(ssh_command, stderr=subprocess.STDOUT)  # nosec
         except subprocess.CalledProcessError as e:
             logger.exception('Failed to execute command "%s".', ssh_command)
-            six.reraise(BatchError, e.output)
+            stdout = e.output or ''
+            lines = stdout.splitlines()
+            if len(lines) > 0 and lines[0].startswith('Warning: Permanently added'):
+                lines = lines[1:]
+            stdout = '\n'.join(lines)
+            six.reraise(BatchError, stdout)
 
 
 @six.add_metaclass(abc.ABCMeta)

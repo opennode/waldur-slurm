@@ -54,6 +54,10 @@ class MoabClient(BaseBatchClient):
         return self.execute_command(command.split())
 
     def set_resource_limits(self, account, quotas):
+        if quotas.deposit < 0:
+            logger.warning('Skipping limit update because pricing '
+                           'package is not created for the related service settings.')
+            return
         command = 'mam-deposit -a %(account)s -z %(deposit_amount)s --create-fund True' % {
             'account': account,
             'deposit_amount': quotas.deposit
