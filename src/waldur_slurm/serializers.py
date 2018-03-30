@@ -65,6 +65,9 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer,
     username = rf_serializers.SerializerMethodField()
     gateway = rf_serializers.SerializerMethodField()
     backend_id = rf_serializers.SerializerMethodField()
+    batch_service = rf_serializers.ReadOnlyField()
+    homepage = rf_serializers.ReadOnlyField(
+        source='service_project_link.service.settings.homepage')
 
     def get_username(self, allocation):
         request = self.context['request']
@@ -89,7 +92,7 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer,
             'ram_limit', 'ram_usage',
             'deposit_limit', 'deposit_usage',
             'username', 'gateway',
-            'is_active',
+            'is_active', 'batch_service', 'homepage'
         )
         read_only_fields = structure_serializers.BaseResourceSerializer.Meta.read_only_fields + (
             'cpu_usage', 'gpu_usage', 'ram_usage', 'is_active',
