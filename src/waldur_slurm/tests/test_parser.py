@@ -1,7 +1,6 @@
 from django.test import TestCase
 import mock
 
-from waldur_slurm.parser import SlurmReportLine
 from waldur_slurm.tests import fixtures
 
 VALID_ALLOCATION = 'allocation1'

@@ -57,4 +57,5 @@ class AllocationUsageViewSet(viewsets.ReadOnlyModelViewSet):
 def get_project_allocation_count(project):
     return project.quotas.get(name='nc_allocation_count').usage
 
+
 structure_views.ProjectCountersView.register_counter('slurm', get_project_allocation_count)
