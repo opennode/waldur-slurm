@@ -1,5 +1,3 @@
-import six
-
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import decorators, permissions, response, status, viewsets
 
@@ -21,8 +19,7 @@ class SlurmServiceProjectLinkViewSet(structure_views.BaseServiceProjectLinkViewS
     filter_class = filters.SlurmServiceProjectLinkFilter
 
 
-class AllocationViewSet(six.with_metaclass(structure_views.ResourceViewMetaclass,
-                                           structure_views.ResourceViewSet)):
+class AllocationViewSet(structure_views.BaseResourceViewSet):
     queryset = models.Allocation.objects.all()
     serializer_class = serializers.AllocationSerializer
     filter_class = filters.AllocationFilter
