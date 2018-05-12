@@ -28,10 +28,6 @@ class SlurmService(structure_models.Service):
     def get_url_name(cls):
         return 'slurm'
 
-    @property
-    def batch_service(self):
-        return get_batch_service(self.settings)
-
 
 class SlurmServiceProjectLink(structure_models.ServiceProjectLink):
     service = models.ForeignKey(SlurmService)
@@ -78,7 +74,7 @@ class Allocation(structure_models.NewResource):
 
     @property
     def batch_service(self):
-        return self.service_project_link.service.batch_service
+        return get_batch_service(self.service_project_link.service.settings)
 
 
 class AllocationUsage(models.Model):

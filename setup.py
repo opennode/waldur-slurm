@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    'waldur-core>=0.151.0',
+    'waldur-core>=0.157.5',
     'waldur-freeipa>=0.2.4',
 ]
 
@@ -21,7 +21,7 @@ tests_requires = [
 
 setup(
     name='waldur-slurm',
-    version='0.5.0',
+    version='0.6.0',
     author='OpenNode Team',
     author_email='info@opennodecloud.com',
     url='http://waldur.com',
