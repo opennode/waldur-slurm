@@ -60,7 +60,10 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer,
 
     service_project_link = rf_serializers.HyperlinkedRelatedField(
         view_name='slurm-spl-detail',
-        queryset=models.SlurmServiceProjectLink.objects.all())
+        queryset=models.SlurmServiceProjectLink.objects.all(),
+        allow_null=True,
+        required=False,
+    )
 
     username = rf_serializers.SerializerMethodField()
     gateway = rf_serializers.SerializerMethodField()
@@ -105,15 +108,19 @@ class AllocationSerializer(structure_serializers.BaseResourceSerializer,
             ram_limit={'validators': [MinValueValidator(0)]},
         )
 
-    def validate_service_project_link(self, spl):
-        spl = super(AllocationSerializer, self).validate_service_project_link(spl)
+    def validate(self, attrs):
+        attrs = super(AllocationSerializer, self).validate(attrs)
+        # Skip validation on update
+        if self.instance:
+            return attrs
 
+        spl = attrs['service_project_link']
         user = self.context['request'].user
         if not _has_owner_access(user, spl.project.customer):
             raise rf_exceptions.PermissionDenied(
                 _('You do not have permissions to create allocation for given project.')
             )
-        return spl
+        return attrs
 
 
 class AllocationUsageSerializer(rf_serializers.HyperlinkedModelSerializer):
