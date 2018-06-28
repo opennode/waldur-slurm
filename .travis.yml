@@ -16,5 +16,5 @@ deploy:
     secure: 13UzOjWv6fS1nqaQV4FukhjIw1Gk+PH5AmEZkKG88o5HYNOTuY7N6Q0T6/4VSYH2vmR5MkK1nG/ok6zJ1m5omkGMOaHiJ/UA5z5SnYuVKoZi674GcO/PMItu68UroQJJ/DspCssZu8wHDwL4auHyqEURBbgCqkUYTGUeDXT9nW+yGzSToVcc4jqhpMajFgVYiv4KfLLpXwfzIcu+eRdU4/v5evnriFQZvN6FQtFIVYWPwdybiZ13VfSHWxSeE2SmdkQRWkyhBc6FB2cMXEXya5vPZWjwwU6lE1tp/0ykdH7SvWh9EK/Xy46sPBRElGFQV74G4dVsXYQrub8Z3iexLV/AsFCWq0HPavjRBMuVa1LFj8h8H+KzwpkAQhsK7jznzp6XHYd9y56eylxIgP+AtwD00J7EWq64YGsspqzsCgzf0tsiQ+R+TEwl8DBBaB3FQfNzD1Qnh4/qO2e9lzrP+uNQ+KkTuFm71UZfb5HVRVxm/HsoGX3iezqUhNuqNxSQzO3YsdjuuviypTy0raz0pQMk95ihD+oEx+Qf/zIKVRlRGr7RYozTArTpqzd04SBLr1S4HGDc4rZodCyvrJsfM3Fv1u/vxLQW/D0cBORhj5zLiG9X8WkIxOoUaWPBbb5YVK1nLJt2+O/4ouMt4F0zNjH54c5WTBNPwb8kl2mxUAk=
   on:
     tags: true
-    distributions: sdist bdist_wheel
     repo: opennode/waldur-slurm
+  distributions: "sdist bdist_wheel"
